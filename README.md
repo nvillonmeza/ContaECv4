@@ -516,66 +516,270 @@ systemctl start clamav-freshclam
 ## Estructura del Proyecto
 
 ```
-/opt/contaec/
+ContaECv4/
 ├── backend/                        # FastAPI Backend
 │   ├── app/
 │   │   ├── api/v1/
-│   │   │   ├── endpoints/          # 27+ archivos de endpoints
-│   │   │   │   ├── auth.py         # Autenticación JWT
+│   │   │   ├── endpoints/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── accounting.py   # Plan de cuentas, asientos, balances
 │   │   │   │   ├── admin.py        # Panel de administración
+│   │   │   │   ├── audit.py        # Logs de auditoría
+│   │   │   │   ├── auth.py         # Autenticación JWT
+│   │   │   │   ├── backup.py       # Backups de base de datos
+│   │   │   │   ├── bi.py           # Business Intelligence
+│   │   │   │   ├── budgets.py      # Presupuestos
+│   │   │   │   ├── clients.py      # Gestión de clientes
 │   │   │   │   ├── companies.py    # Empresas + consulta RUC SRI
 │   │   │   │   ├── comprobantes.py # Facturación electrónica SRI
+│   │   │   │   ├── config.py       # Configuración del sistema
 │   │   │   │   ├── crm.py          # CRM (pipeline, leads, oportunidades)
+│   │   │   │   ├── email_receiver.py   # Recepción de correos
+│   │   │   │   ├── email_templates.py  # Plantillas de correo
+│   │   │   │   ├── employees.py    # Gestión de empleados
+│   │   │   │   ├── exports.py      # Exportación de datos
+│   │   │   │   ├── imports.py      # Importación de datos
+│   │   │   │   ├── integrations.py # Integraciones externas
+│   │   │   │   ├── kardex.py       # Kardex de inventario
+│   │   │   │   ├── licenses.py     # Gestión de licencias
+│   │   │   │   ├── ml_ai.py        # ML/AI endpoints
+│   │   │   │   ├── notifications.py # Notificaciones
 │   │   │   │   ├── payroll.py      # Nómina (roles, décimos, liquidaciones)
-│   │   │   │   ├── bi.py           # Business Intelligence
-│   │   │   │   └── ...             # 20+ archivos más
+│   │   │   │   ├── pos.py          # Punto de Venta
+│   │   │   │   ├── products.py     # Gestión de productos
+│   │   │   │   ├── proformas.py    # Proformas/cotizaciones
+│   │   │   │   ├── projects.py     # Gestión de proyectos
+│   │   │   │   ├── purchases.py    # Compras
+│   │   │   │   ├── smtp_profiles.py # Perfiles SMTP
+│   │   │   │   ├── suppliers.py    # Gestión de proveedores
+│   │   │   │   ├── uploads.py      # Subida de archivos
+│   │   │   │   ├── user_roles.py   # Roles de usuario por empresa
+│   │   │   │   └── warehouses.py   # Gestión de bodegas
 │   │   │   └── router.py           # Router principal (~331 rutas)
 │   │   ├── core/
+│   │   │   ├── __init__.py
+│   │   │   ├── audit.py            # Logging de auditoría
 │   │   │   ├── config.py           # Configuración (.env + pydantic)
 │   │   │   ├── database.py         # SQLAlchemy async engine
-│   │   │   ├── security.py         # JWT + bcrypt + blacklist
-│   │   │   ├── xml_generator.py    # Generación XML SRI
-│   │   │   ├── xml_signer.py       # Firma XAdES-BES
-│   │   │   ├── sri_service.py      # Cliente SOAP SRI
-│   │   │   ├── ride_generator.py   # PDF RIDE (factura impresa)
+│   │   │   ├── email_receiver.py   # Recepción de correos IMAP
 │   │   │   ├── email_service.py    # Envío de correo SMTP
-│   │   │   ├── scanner.py          # ClamAV + VirusTotal
 │   │   │   ├── encryption.py       # Cifrado Fernet (datos sensibles)
-│   │   │   └── ...                 # 10+ módulos más
+│   │   │   ├── hr_constants.py     # Constantes de RRHH Ecuador
+│   │   │   ├── rate_limiter.py     # Rate limiting
+│   │   │   ├── ride_generator.py   # PDF RIDE (factura impresa)
+│   │   │   ├── scanner.py          # ClamAV + VirusTotal
+│   │   │   ├── security.py         # JWT + bcrypt + blacklist
+│   │   │   ├── sri_service.py      # Cliente SOAP SRI
+│   │   │   ├── token_blacklist.py  # Blacklist de tokens JWT
+│   │   │   ├── utils.py            # Utilidades generales
+│   │   │   ├── volatile_storage.py # Almacenamiento volátil
+│   │   │   ├── xml_generator.py    # Generación XML SRI
+│   │   │   └── xml_signer.py       # Firma XAdES-BES
 │   │   ├── middleware/
+│   │   │   ├── __init__.py
 │   │   │   └── security.py         # Rate limit + sanitización + headers
-│   │   ├── models/                 # 20+ archivos de modelos SQLAlchemy
-│   │   ├── schemas/                # 24+ archivos de schemas Pydantic
-│   │   ├── services/               # ML service
+│   │   ├── models/                 # Modelos SQLAlchemy
+│   │   │   ├── __init__.py
+│   │   │   ├── accounting.py       # Modelo contabilidad
+│   │   │   ├── audit_log.py        # Modelo logs auditoría
+│   │   │   ├── budget.py           # Modelo presupuestos
+│   │   │   ├── client.py           # Modelo clientes
+│   │   │   ├── company.py          # Modelo empresas
+│   │   │   ├── comprobante.py      # Modelo comprobantes
+│   │   │   ├── crm.py              # Modelo CRM
+│   │   │   ├── email_template.py   # Modelo plantillas correo
+│   │   │   ├── employee.py         # Modelo empleados
+│   │   │   ├── hr_extended.py      # Modelo RRHH extendido
+│   │   │   ├── hr_extended2.py     # Modelo RRHH extendido 2
+│   │   │   ├── integration.py      # Modelo integraciones
+│   │   │   ├── kardex.py           # Modelo kardex
+│   │   │   ├── ml_ai.py            # Modelo ML/AI
+│   │   │   ├── notification.py     # Modelo notificaciones
+│   │   │   ├── payroll.py          # Modelo nómina
+│   │   │   ├── pos.py              # Modelo punto de venta
+│   │   │   ├── product.py          # Modelo productos
+│   │   │   ├── proforma.py         # Modelo proformas
+│   │   │   ├── project.py          # Modelo proyectos
+│   │   │   ├── purchase.py         # Modelo compras
+│   │   │   ├── smtp_profile.py     # Modelo perfiles SMTP
+│   │   │   ├── supplier.py         # Modelo proveedores
+│   │   │   ├── user.py             # Modelo usuarios
+│   │   │   ├── user_company_role.py # Modelo roles por empresa
+│   │   │   └── warehouse.py        # Modelo bodegas
+│   │   ├── schemas/                # Schemas Pydantic
+│   │   │   ├── __init__.py
+│   │   │   ├── accounting.py       # Schema contabilidad
+│   │   │   ├── audit_log.py        # Schema logs auditoría
+│   │   │   ├── auth.py             # Schema autenticación
+│   │   │   ├── bi.py               # Schema BI
+│   │   │   ├── budget.py           # Schema presupuestos
+│   │   │   ├── client.py           # Schema clientes
+│   │   │   ├── company.py          # Schema empresas
+│   │   │   ├── comprobante.py      # Schema comprobantes
+│   │   │   ├── crm.py              # Schema CRM
+│   │   │   ├── email_template.py   # Schema plantillas correo
+│   │   │   ├── employee.py         # Schema empleados
+│   │   │   ├── hr_extended2.py     # Schema RRHH extendido
+│   │   │   ├── integration.py      # Schema integraciones
+│   │   │   ├── kardex.py           # Schema kardex
+│   │   │   ├── ml_ai.py            # Schema ML/AI
+│   │   │   ├── notification.py     # Schema notificaciones
+│   │   │   ├── payroll.py          # Schema nómina
+│   │   │   ├── pos.py              # Schema punto de venta
+│   │   │   ├── product.py          # Schema productos
+│   │   │   ├── proforma.py         # Schema proformas
+│   │   │   ├── project.py          # Schema proyectos
+│   │   │   ├── purchase.py         # Schema compras
+│   │   │   ├── smtp_profile.py     # Schema perfiles SMTP
+│   │   │   ├── sri.py              # Schema SRI
+│   │   │   ├── supplier.py         # Schema proveedores
+│   │   │   ├── user_company_role.py # Schema roles por empresa
+│   │   │   └── warehouse.py        # Schema bodegas
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   └── ml_service.py       # Servicio de ML
+│   │   ├── __init__.py
 │   │   └── main.py                 # Entry point FastAPI
-│   ├── requirements.txt            # 27 dependencias Python
+│   ├── requirements.txt            # Dependencias Python
 │   ├── deploy/
 │   │   └── postgresql_blueprint.md # Guía de migración PostgreSQL
-│   └── .env                        # Variables de entorno (NO commitear)
+│   ├── package.json                # Dependencias Node (mini-services)
+│   ├── run.sh                      # Script de ejecución
+│   └── start.sh                    # Script de inicio
 │
 ├── src/                            # Next.js 16 Frontend
 │   ├── app/
-│   │   ├── page.tsx                # Entry point (login/dashboard/admin)
-│   │   └── api/[...path]/route.ts  # API proxy → FastAPI
+│   │   ├── api/[...path]/
+│   │   │   └── route.ts            # API proxy → FastAPI
+│   │   ├── globals.css             # Estilos globales
+│   │   ├── layout.tsx              # Layout raíz
+│   │   └── page.tsx                # Entry point (login/dashboard/admin)
 │   ├── components/
-│   │   ├── contaec-dashboard.tsx   # Dashboard principal
+│   │   ├── contaec-accounting.tsx  # Contabilidad
 │   │   ├── contaec-admin.tsx       # Panel admin
-│   │   ├── contaec-invoices.tsx    # Facturación SRI
-│   │   ├── contaec-crm.tsx         # CRM
-│   │   ├── contaec-hr.tsx          # Recursos Humanos
+│   │   ├── contaec-audit.tsx       # Auditoría
 │   │   ├── contaec-bi.tsx          # Business Intelligence
+│   │   ├── contaec-budgets.tsx     # Presupuestos
+│   │   ├── contaec-crm.tsx         # CRM
+│   │   ├── contaec-dashboard.tsx   # Dashboard principal
+│   │   ├── contaec-hr.tsx          # Recursos Humanos
+│   │   ├── contaec-integrations.tsx # Integraciones
+│   │   ├── contaec-inventory.tsx   # Inventario
+│   │   ├── contaec-invoices.tsx    # Facturación SRI
+│   │   ├── contaec-login.tsx       # Login
+│   │   ├── contaec-ml-ai.tsx       # ML/AI
 │   │   ├── contaec-pos.tsx         # Punto de Venta
-│   │   └── ...                     # 15+ componentes más
-│   │   └── ui/                     # 45 componentes shadcn/ui
+│   │   ├── contaec-projects.tsx    # Proyectos
+│   │   ├── contaec-purchases.tsx   # Compras
+│   │   ├── contaec-settings.tsx    # Configuración
+│   │   ├── contaec-suppliers.tsx   # Proveedores
+│   │   ├── contaec-warehouses.tsx  # Bodegas
+│   │   ├── providers.tsx           # Providers (theme, query, etc.)
+│   │   └── ui/                     # Componentes shadcn/ui
+│   │       ├── accordion.tsx
+│   │       ├── alert-dialog.tsx
+│   │       ├── alert.tsx
+│   │       ├── aspect-ratio.tsx
+│   │       ├── avatar.tsx
+│   │       ├── badge.tsx
+│   │       ├── breadcrumb.tsx
+│   │       ├── button.tsx
+│   │       ├── calendar.tsx
+│   │       ├── card.tsx
+│   │       ├── carousel.tsx
+│   │       ├── chart.tsx
+│   │       ├── checkbox.tsx
+│   │       ├── collapsible.tsx
+│   │       ├── command.tsx
+│   │       ├── context-menu.tsx
+│   │       ├── dialog.tsx
+│   │       ├── drawer.tsx
+│   │       ├── dropdown-menu.tsx
+│   │       ├── form.tsx
+│   │       ├── hover-card.tsx
+│   │       ├── input-otp.tsx
+│   │       ├── input.tsx
+│   │       ├── label.tsx
+│   │       ├── menubar.tsx
+│   │       ├── navigation-menu.tsx
+│   │       ├── pagination.tsx
+│   │       ├── popover.tsx
+│   │       ├── progress.tsx
+│   │       ├── radio-group.tsx
+│   │       ├── resizable.tsx
+│   │       ├── scroll-area.tsx
+│   │       ├── select.tsx
+│   │       ├── separator.tsx
+│   │       ├── sheet.tsx
+│   │       ├── sidebar.tsx
+│   │       ├── skeleton.tsx
+│   │       ├── slider.tsx
+│   │       ├── sonner.tsx
+│   │       ├── switch.tsx
+│   │       ├── table.tsx
+│   │       ├── tabs.tsx
+│   │       ├── textarea.tsx
+│   │       ├── toast.tsx
+│   │       ├── toaster.tsx
+│   │       ├── toggle-group.tsx
+│   │       ├── toggle.tsx
+│   │       └── tooltip.tsx
+│   ├── hooks/
+│   │   ├── use-mobile.ts           # Hook responsive mobile
+│   │   └── use-toast.ts            # Hook notificaciones toast
 │   └── lib/
 │       ├── api.ts                  # ~320 funciones API + ~170 tipos
+│       ├── db.ts                   # Utilidades de base de datos
 │       ├── i18n.ts                 # 3 idiomas (es_EC, en_US, pt_BR)
 │       └── utils.ts                # Utilidades Tailwind
 │
-├── prisma/                         # Schema Prisma (legacy, no usado en prod)
+├── prisma/
+│   └── schema.prisma               # Schema Prisma (legacy, no usado en prod)
+│
+├── db/
+│   └── custom.db                   # Base de datos personalizada
+│
+├── download/
+│   └── README.md                   # Documentación de descargas
+│
+├── examples/
+│   └── websocket/
+│       ├── frontend.tsx            # Ejemplo cliente WebSocket
+│       └── server.ts               # Ejemplo servidor WebSocket
+│
+├── mini-services/
+│   ├── contaec-backend/
+│   │   ├── contaec.db              # SQLite mini-service
+│   │   ├── index.ts                # Entry point
+│   │   ├── package.json
+│   │   └── run.sh
+│   └── .gitkeep
+│
+├── public/
+│   ├── logo.svg                    # Logo del sistema
+│   └── robots.txt                  # Robots.txt
+│
+├── upload/
+│   └── FICHA_TECNICA.pdf           # Ficha técnica del proyecto
+│
+├── .env.example                    # Variables de entorno de ejemplo
+├── .gitattributes
+├── .gitignore
+├── bun.lock                        # Lock file Bun
 ├── Caddyfile                       # Configuración proxy reverso
-├── package.json                    # Dependencias Node.js
+├── components.json                 # Configuración shadcn/ui
+├── contaec.db                      # Base de datos SQLite principal
+├── contaec.db-shm                  # SQLite shared memory
+├── contaec.db-wal                  # SQLite write-ahead log
+├── eslint.config.mjs               # Configuración ESLint
 ├── next.config.ts                  # Configuración Next.js
+├── package.json                    # Dependencias Node.js
+├── postcss.config.mjs              # Configuración PostCSS
+├── tailwind.config.ts              # Configuración Tailwind
+├── tsconfig.json                   # Configuración TypeScript
+├── worklog.md                      # Registro de trabajo
+├── worklog-new.md                  # Registro de trabajo (nuevo)
+├── ia.md                           # Documentación IA
 └── README.md                       # Este archivo
 ```
 
