@@ -47,7 +47,7 @@ class Warehouse(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -144,14 +144,14 @@ class WarehouseLocation(Base):
         default=lambda: str(uuid4()),
     )
     warehouse_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("warehouses.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID del almacén al que pertenece la ubicación",
     )
     producto_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("products.id", ondelete="SET NULL"),
         nullable=True,
         comment="ID del producto asignado a esta ubicación (opcional)",
@@ -253,7 +253,7 @@ class WarehouseTransfer(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -265,14 +265,14 @@ class WarehouseTransfer(Base):
         comment="Número de transferencia (ej: TR-000001), único por empresa",
     )
     warehouse_origen_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("warehouses.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
         comment="ID del almacén de origen",
     )
     warehouse_destino_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("warehouses.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
@@ -296,7 +296,7 @@ class WarehouseTransfer(Base):
         comment="Observaciones adicionales",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         index=True,
@@ -370,14 +370,14 @@ class WarehouseTransferDetalle(Base):
         default=lambda: str(uuid4()),
     )
     transferencia_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("warehouse_transfers.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la transferencia",
     )
     product_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("products.id", ondelete="RESTRICT"),
         nullable=False,
         comment="ID del producto a transferir",
@@ -398,13 +398,13 @@ class WarehouseTransferDetalle(Base):
         comment="Costo total (cantidad * costo_unitario)",
     )
     ubicacion_origen_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("warehouse_locations.id", ondelete="SET NULL"),
         nullable=True,
         comment="ID de la ubicación de origen dentro del almacén origen",
     )
     ubicacion_destino_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("warehouse_locations.id", ondelete="SET NULL"),
         nullable=True,
         comment="ID de la ubicación de destino dentro del almacén destino",

@@ -41,21 +41,21 @@ class Proforma(Base):
     )
     # Llaves foráneas
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa emisora de la proforma",
     )
     client_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("clients.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
         comment="ID del cliente (opcional, puede ser Consumidor Final)",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         index=True,
@@ -220,7 +220,7 @@ class Proforma(Base):
 
     # === Referencia a comprobante convertido ===
     comprobante_convertido_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("comprobantes.id", ondelete="SET NULL"),
         nullable=True,
         comment="ID del comprobante creado al convertir esta proforma",
@@ -288,13 +288,13 @@ class ProformaDetalle(Base):
         default=lambda: str(uuid4()),
     )
     proforma_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("proformas.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     product_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("products.id", ondelete="SET NULL"),
         nullable=True,
     )

@@ -39,14 +39,14 @@ class RolPago(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa a la que pertenece el rol",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -174,14 +174,14 @@ class RolPagoDetalle(Base):
         default=lambda: str(uuid4()),
     )
     rol_pago_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("roles_pago.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID del rol de pago al que pertenece el detalle",
     )
     employee_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("employees.id", ondelete="CASCADE"),
         nullable=False,
         index=True,

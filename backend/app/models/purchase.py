@@ -33,21 +33,21 @@ class OrdenCompra(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa",
     )
     supplier_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("suppliers.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
         comment="ID del proveedor",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         index=True,
@@ -156,14 +156,14 @@ class OrdenCompraDetalle(Base):
         default=lambda: str(uuid4()),
     )
     orden_compra_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("ordenes_compra.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la orden de compra",
     )
     product_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("products.id", ondelete="SET NULL"),
         nullable=True,
         comment="ID del producto (opcional)",
@@ -258,28 +258,28 @@ class RecepcionMercaderia(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa",
     )
     orden_compra_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("ordenes_compra.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
         comment="ID de la orden de compra (opcional)",
     )
     supplier_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("suppliers.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
         comment="ID del proveedor",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         index=True,
@@ -364,20 +364,20 @@ class RecepcionMercaderiaDetalle(Base):
         default=lambda: str(uuid4()),
     )
     recepcion_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("recepciones_mercaderia.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la recepción de mercadería",
     )
     product_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("products.id", ondelete="SET NULL"),
         nullable=True,
         comment="ID del producto (opcional)",
     )
     orden_compra_detalle_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("ordenes_compra_detalles.id", ondelete="SET NULL"),
         nullable=True,
         comment="ID del detalle de orden de compra (opcional)",
@@ -455,35 +455,35 @@ class CuentaPorPagar(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa",
     )
     supplier_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("suppliers.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
         comment="ID del proveedor",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         index=True,
         comment="ID del usuario que registró la cuenta por pagar",
     )
     comprobante_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("comprobantes.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
         comment="ID del comprobante electrónico asociado (opcional)",
     )
     orden_compra_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("ordenes_compra.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
@@ -591,35 +591,35 @@ class RetencionCompra(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa",
     )
     supplier_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("suppliers.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
         comment="ID del proveedor",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         index=True,
         comment="ID del usuario que creó la retención",
     )
     comprobante_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("comprobantes.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
         comment="ID del comprobante de retención electrónico (tipo 07)",
     )
     cuenta_por_pagar_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("cuentas_por_pagar.id", ondelete="SET NULL"),
         nullable=True,
         index=True,

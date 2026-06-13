@@ -89,14 +89,14 @@ class MLPrediccion(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         index=True,
@@ -194,14 +194,14 @@ class MLAlertaFraude(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa",
     )
     comprobante_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("comprobantes.id", ondelete="SET NULL"),
         nullable=True,
         comment="ID del comprobante asociado a la alerta",
@@ -253,7 +253,7 @@ class MLAlertaFraude(Base):
         comment="Fecha de resolución de la alerta",
     )
     resuelto_por: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         nullable=True,
         comment="ID del usuario que resolvió la alerta",
     )
@@ -301,14 +301,14 @@ class MLChatbotSesion(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         index=True,
@@ -377,7 +377,7 @@ class MLChatbotMensaje(Base):
         default=lambda: str(uuid4()),
     )
     sesion_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("ml_chatbot_sesiones.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -441,14 +441,14 @@ class MLRecomendacion(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         index=True,
@@ -498,7 +498,7 @@ class MLRecomendacion(Base):
         comment="Fecha en que se aplicó la recomendación",
     )
     aplicada_por: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         nullable=True,
         comment="ID del usuario que aplicó la recomendación",
     )
@@ -546,7 +546,7 @@ class MLCategoriaRegla(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,

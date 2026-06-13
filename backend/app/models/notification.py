@@ -59,14 +59,14 @@ class Notification(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=True,
         index=True,
         comment="ID de la empresa (null = notificación global)",
     )
     user_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=True,
         index=True,

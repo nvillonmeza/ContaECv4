@@ -45,7 +45,7 @@ class Client(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,

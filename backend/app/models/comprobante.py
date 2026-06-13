@@ -74,21 +74,21 @@ class Comprobante(Base):
     )
     # Llaves foráneas
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa emisora del comprobante",
     )
     client_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("clients.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
         comment="ID del cliente/comprador del comprobante",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         index=True,
@@ -321,7 +321,7 @@ class Comprobante(Base):
 
     # === Notas de Crédito/Débito ===
     comprobante_modificado_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("comprobantes.id", ondelete="SET NULL"),
         nullable=True,
         comment="ID del comprobante que se modifica (para notas de crédito/débito)",
@@ -465,14 +465,14 @@ class ComprobanteDetalle(Base):
         default=lambda: str(uuid4()),
     )
     comprobante_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("comprobantes.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID del comprobante al que pertenece el detalle",
     )
     product_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("products.id", ondelete="SET NULL"),
         nullable=True,
         comment="ID del producto (nullable, puede ser un ítem ad-hoc)",

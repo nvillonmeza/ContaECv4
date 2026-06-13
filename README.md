@@ -254,12 +254,14 @@ source /opt/contaec/.venv/bin/activate
 # Instalar dependencias del backend
 cd /opt/contaec/backend
 pip install -r requirements.txt
+deactivate
 ```
 
 ### 4.5 Instalación de Node.js y Bun
 
 ```bash
 # Instalar Node.js 22
+cd ..
 curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 apt install -y nodejs
 
@@ -268,8 +270,10 @@ curl -fsSL https://bun.sh/install | bash
 source ~/.bashrc
 
 # Verificar instalaciones
-node --version   # v22.x
-bun --version    # 1.x
+# v22.x
+node --version
+# 1.x
+bun --version
 ```
 
 ### 4.6 Despliegue del Backend (FastAPI)
@@ -281,9 +285,9 @@ mkdir -p /opt/contaec/backend/uploads
 mkdir -p /opt/contaec/backend/temp
 mkdir -p /opt/contaec/backend/signatures
 
-# Configurar el archivo .env (ver sección 7)
+# Configurar el archivo .env
 cp /opt/contaec/.env.example /opt/contaec/backend/.env
-nano /opt/contaec/backend/.env  # Editar con valores de producción
+nano /opt/contaec/backend/.env
 
 # Crear servicio systemd para el backend
 cat > /etc/systemd/system/contaec-backend.service << 'EOF'
@@ -431,8 +435,6 @@ TEMP_DIR=./temp
 UPLOAD_DIR=./uploads
 ```
 
-**GENERACIÓN DE CLAVES SEGURAS:**
-
 ```bash
 # Ejecutar estas líneas y copiar los resultados al .env
 source /opt/contaec/.venv/bin/activate
@@ -448,6 +450,20 @@ python3 -c "import secrets; print('JWT_SECRET_KEY=' + secrets.token_urlsafe(64))
 
 # BACKUP_ENCRYPTION_KEY (Fernet)
 python3 -c "from cryptography.fernet import Fernet; print('BACKUP_ENCRYPTION_KEY=' + Fernet.generate_key().decode())"
+```
+
+```bash
+# Reiniciar el servicio para que cargue los nuevos valores
+sudo systemctl restart contaec-backend
+
+# Espera 30 segundos
+sleep 30
+
+# Verificar que arrancó
+sudo systemctl status contaec-backend
+
+# Test conexión
+curl http://localhost:8000/api/health
 ```
 
 ### 4.9 Configuración de Caddy (Proxy Reverso)

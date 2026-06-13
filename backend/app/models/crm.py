@@ -95,7 +95,7 @@ class CRMPipeline(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -172,7 +172,7 @@ class CRMPipelineStage(Base):
         default=lambda: str(uuid4()),
     )
     pipeline_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("crm_pipelines.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -248,14 +248,14 @@ class CRMLead(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa",
     )
     client_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("clients.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
@@ -296,7 +296,7 @@ class CRMLead(Base):
         comment="Estado: nuevo, contactado, cualificado, propuesta, negociacion, ganado, perdido",
     )
     assigned_to: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
@@ -376,35 +376,35 @@ class CRMOpportunity(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa",
     )
     lead_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("crm_leads.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
         comment="ID del lead origen (opcional)",
     )
     client_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("clients.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
         comment="ID del cliente asociado (opcional)",
     )
     pipeline_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("crm_pipelines.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
         comment="ID del pipeline",
     )
     stage_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("crm_pipeline_stages.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
@@ -450,7 +450,7 @@ class CRMOpportunity(Base):
         comment="Estado: abierta, ganada, perdida",
     )
     assigned_to: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
@@ -523,28 +523,28 @@ class CRMActivity(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa",
     )
     opportunity_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("crm_opportunities.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
         comment="ID de la oportunidad asociada (opcional)",
     )
     lead_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("crm_leads.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
         comment="ID del lead asociado (opcional)",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         index=True,
@@ -629,7 +629,7 @@ class CRMContactSegment(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -721,14 +721,14 @@ class CRMContactSegmentMember(Base):
         default=lambda: str(uuid4()),
     )
     segment_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("crm_contact_segments.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID del segmento",
     )
     client_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("clients.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -774,7 +774,7 @@ class CRMAutomation(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,

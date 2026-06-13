@@ -91,7 +91,7 @@ class CargaFamiliar(Base):
         default=lambda: str(uuid4()),
     )
     employee_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("employees.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -194,14 +194,14 @@ class EvaluacionDesempeno(Base):
         default=lambda: str(uuid4()),
     )
     employee_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("employees.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID del empleado evaluado",
     )
     evaluador_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
         comment="ID del usuario que realiza la evaluación",
@@ -316,7 +316,7 @@ class Asistencia(Base):
         default=lambda: str(uuid4()),
     )
     employee_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("employees.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -432,14 +432,14 @@ class LiquidacionLaboral(Base):
         default=lambda: str(uuid4()),
     )
     employee_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("employees.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID del empleado al que pertenece la liquidación",
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -582,7 +582,7 @@ class LiquidacionLaboral(Base):
         comment="Observaciones adicionales de la liquidación",
     )
     aprobado_por: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
         comment="ID del usuario que aprobó la liquidación",
@@ -658,7 +658,7 @@ class UtilidadesParticipacion(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -757,14 +757,14 @@ class UtilidadesDetalle(Base):
         default=lambda: str(uuid4()),
     )
     utilidad_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("utilidades_participacion.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la participación de utilidades",
     )
     employee_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("employees.id", ondelete="CASCADE"),
         nullable=False,
         index=True,

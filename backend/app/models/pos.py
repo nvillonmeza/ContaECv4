@@ -82,14 +82,14 @@ class POSCashSession(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa",
     )
     warehouse_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("warehouses.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
@@ -101,7 +101,7 @@ class POSCashSession(Base):
         comment="Número de caja (ej: CAJA-001)",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         index=True,
@@ -256,21 +256,21 @@ class POSTicket(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa",
     )
     cash_session_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("pos_cash_sessions.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la sesión de caja",
     )
     comprobante_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("comprobantes.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
@@ -392,7 +392,7 @@ class POSTicket(Base):
         comment="Observaciones adicionales",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         index=True,
@@ -446,14 +446,14 @@ class POSTicketDetalle(Base):
         default=lambda: str(uuid4()),
     )
     ticket_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("pos_tickets.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID del ticket",
     )
     product_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("products.id", ondelete="SET NULL"),
         nullable=True,
         comment="ID del producto (opcional para items manuales)",
@@ -546,14 +546,14 @@ class POSArqueo(Base):
         default=lambda: str(uuid4()),
     )
     cash_session_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("pos_cash_sessions.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la sesión de caja",
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -609,7 +609,7 @@ class POSArqueo(Base):
         comment="Observaciones del arqueo",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         index=True,

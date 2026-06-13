@@ -59,7 +59,7 @@ class CuentaBancaria(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -188,14 +188,14 @@ class ExtractoBancario(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa",
     )
     cuenta_bancaria_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("cuentas_bancarias.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -310,19 +310,19 @@ class MovimientoBancario(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     cuenta_bancaria_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("cuentas_bancarias.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     extracto_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("extractos_bancarios.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -381,7 +381,7 @@ class MovimientoBancario(Base):
         comment="Fecha en que se concilio el movimiento",
     )
     comprobante_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("comprobantes.id", ondelete="SET NULL"),
         nullable=True,
         comment="ID del comprobante conciliado",
@@ -467,14 +467,14 @@ class EcommerceConnector(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         index=True,
@@ -642,13 +642,13 @@ class EcommerceSyncLog(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
     connector_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("ecommerce_connectors.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -705,7 +705,7 @@ class EcommerceSyncLog(Base):
         comment="JSON con resumen de la sincronizacion",
     )
     creado_por: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         nullable=True,
         comment="ID del usuario que inicio la sync (null = automatica)",
     )

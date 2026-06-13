@@ -30,7 +30,7 @@ class AuditLog(Base):
         default=lambda: str(uuid4()),
     )
     user_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
@@ -54,7 +54,7 @@ class AuditLog(Base):
         comment="Tipo de entidad afectada: user, company, client, product, comprobante, etc.",
     )
     entity_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         nullable=True,
         comment="ID de la entidad afectada",
     )

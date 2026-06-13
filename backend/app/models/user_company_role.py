@@ -130,14 +130,14 @@ class UserCompanyRole(Base):
         default=lambda: str(uuid4()),
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID del usuario al que se asigna el rol",
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,

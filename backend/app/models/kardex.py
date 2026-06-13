@@ -45,21 +45,21 @@ class Kardex(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa a la que pertenece el movimiento",
     )
     product_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("products.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID del producto al que pertenece el movimiento",
     )
     warehouse_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("warehouses.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
@@ -108,7 +108,7 @@ class Kardex(Base):
         comment="Tipo de documento de referencia: comprobante, ajuste, compra, etc.",
     )
     referencia_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         nullable=True,
         comment="ID del documento de referencia",
     )
@@ -133,7 +133,7 @@ class Kardex(Base):
     )
     # Usuario que registra el movimiento
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         index=True,

@@ -91,21 +91,21 @@ class Contrato(Base):
         default=lambda: str(uuid4()),
     )
     employee_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("employees.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID del empleado al que pertenece el contrato",
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa a la que pertenece el contrato",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         comment="ID del usuario que creó el registro",
@@ -272,21 +272,21 @@ class DecimoPago(Base):
         default=lambda: str(uuid4()),
     )
     employee_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("employees.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID del empleado al que pertenece el décimo pago",
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa a la que pertenece el décimo pago",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         comment="ID del usuario que creó el registro",
@@ -351,7 +351,7 @@ class DecimoPago(Base):
         comment="Estado del décimo: pendiente, pagado, anulado",
     )
     rol_pago_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("roles_pago.id", ondelete="SET NULL"),
         nullable=True,
         comment="ID del rol de pago en el que se incluyó el décimo",
@@ -426,21 +426,21 @@ class Anticipo(Base):
         default=lambda: str(uuid4()),
     )
     employee_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("employees.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID del empleado que solicita el anticipo",
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa a la que pertenece el anticipo",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         comment="ID del usuario que creó el registro",
@@ -577,21 +577,21 @@ class RubroEmpleado(Base):
         default=lambda: str(uuid4()),
     )
     employee_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("employees.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID del empleado al que pertenece el rubro",
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa a la que pertenece el rubro",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         comment="ID del usuario que creó el registro",

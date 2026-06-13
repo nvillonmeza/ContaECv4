@@ -66,14 +66,14 @@ class Proyecto(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         index=True,
@@ -95,7 +95,7 @@ class Proyecto(Base):
         comment="Descripción detallada del proyecto",
     )
     cliente_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("clients.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
@@ -247,7 +247,7 @@ class ProyectoTarea(Base):
         default=lambda: str(uuid4()),
     )
     proyecto_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("proyectos.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -287,7 +287,7 @@ class ProyectoTarea(Base):
         comment="Nombre de la persona asignada",
     )
     employee_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("employees.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
@@ -381,7 +381,7 @@ class ProyectoRecurso(Base):
         default=lambda: str(uuid4()),
     )
     proyecto_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("proyectos.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -403,7 +403,7 @@ class ProyectoRecurso(Base):
         comment="Descripción del recurso",
     )
     employee_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("employees.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
@@ -487,28 +487,28 @@ class ProyectoTimesheet(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa",
     )
     proyecto_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("proyectos.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID del proyecto",
     )
     tarea_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("proyecto_tareas.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
         comment="ID de la tarea asociada",
     )
     employee_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("employees.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
@@ -600,7 +600,7 @@ class ProyectoCosto(Base):
         default=lambda: str(uuid4()),
     )
     proyecto_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("proyectos.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -638,7 +638,7 @@ class ProyectoCosto(Base):
         comment="Indica si el costo es facturable al cliente",
     )
     comprobante_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("comprobantes.id", ondelete="SET NULL"),
         nullable=True,
         comment="ID del comprobante vinculado al costo",

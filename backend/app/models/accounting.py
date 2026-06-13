@@ -117,7 +117,7 @@ class CuentaContable(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -151,7 +151,7 @@ class CuentaContable(Base):
         comment="Nivel jerárquico de la cuenta (1=grupo, 2=subgrupo, etc.)",
     )
     cuenta_padre_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("cuentas_contables.id", ondelete="SET NULL"),
         nullable=True,
         comment="ID de la cuenta padre (para jerarquía)",
@@ -204,7 +204,7 @@ class CuentaContable(Base):
     )
     # Cuenta contable vinculada para automatización
     cuenta_contrapartida_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("cuentas_contables.id", ondelete="SET NULL"),
         nullable=True,
         comment="ID de la cuenta de contrapartida automática",
@@ -282,21 +282,21 @@ class AsientoContable(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         index=True,
         comment="ID del usuario que creó el asiento",
     )
     periodo_fiscal_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("periodos_fiscales.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
@@ -352,7 +352,7 @@ class AsientoContable(Base):
         comment="Tipo de documento origen (comprobante, rol_pago, etc.)",
     )
     referencia_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         nullable=True,
         comment="ID del documento origen",
     )
@@ -430,14 +430,14 @@ class AsientoDetalle(Base):
         default=lambda: str(uuid4()),
     )
     asiento_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("asientos_contables.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID del asiento contable al que pertenece",
     )
     cuenta_contable_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("cuentas_contables.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
@@ -469,7 +469,7 @@ class AsientoDetalle(Base):
         comment="Tipo de documento origen específico",
     )
     referencia_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         nullable=True,
         comment="ID del documento origen específico",
     )
@@ -516,35 +516,35 @@ class CuentaPorCobrar(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa",
     )
     client_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("clients.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
         comment="ID del cliente deudor",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         index=True,
         comment="ID del usuario que registró la CxC",
     )
     comprobante_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("comprobantes.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
         comment="ID del comprobante electrónico asociado",
     )
     asiento_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("asientos_contables.id", ondelete="SET NULL"),
         nullable=True,
         comment="ID del asiento contable asociado",
@@ -702,14 +702,14 @@ class Pago(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         index=True,
@@ -717,14 +717,14 @@ class Pago(Base):
     )
     # === Referencia a CxC o CxP ===
     cuenta_por_cobrar_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("cuentas_por_cobrar.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
         comment="ID de la CxC asociada (si es cobro)",
     )
     cuenta_por_pagar_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("cuentas_por_pagar.id", ondelete="SET NULL"),
         nullable=True,
         index=True,
@@ -732,7 +732,7 @@ class Pago(Base):
     )
     # === Asiento contable generado ===
     asiento_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("asientos_contables.id", ondelete="SET NULL"),
         nullable=True,
         comment="ID del asiento contable generado por este pago",
@@ -773,7 +773,7 @@ class Pago(Base):
     )
     # === Cuenta bancaria ===
     cuenta_bancaria_id: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("cuentas_bancarias.id", ondelete="SET NULL"),
         nullable=True,
         comment="ID de la cuenta bancaria utilizada",
@@ -874,14 +874,14 @@ class PeriodoFiscal(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         comment="ID del usuario que creó/cerró el período",
@@ -936,7 +936,7 @@ class PeriodoFiscal(Base):
         comment="Fecha en que se cerró el período",
     )
     cerrado_por: Mapped[str | None] = mapped_column(
-        String(36),
+        PG_UUID(),
         nullable=True,
         comment="ID del usuario que cerró el período",
     )

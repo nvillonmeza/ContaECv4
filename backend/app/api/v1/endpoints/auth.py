@@ -19,6 +19,7 @@ from app.core.security import (
     revoke_token,
     verify_password,
     verify_token,
+    oauth2_scheme,
 )
 from app.core.config import get_settings
 from app.core.token_blacklist import get_token_blacklist

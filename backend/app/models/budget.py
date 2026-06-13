@@ -54,14 +54,14 @@ class PresupuestoAnual(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa",
     )
     user_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("users.id", ondelete="SET NULL"),
         nullable=False,
         index=True,
@@ -169,7 +169,7 @@ class PresupuestoCuenta(Base):
         default=lambda: str(uuid4()),
     )
     presupuesto_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("presupuestos_anuales.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -275,7 +275,7 @@ class PresupuestoEjecucionMensual(Base):
         default=lambda: str(uuid4()),
     )
     presupuesto_cuenta_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("presupuestos_cuentas.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -358,14 +358,14 @@ class PresupuestoAlerta(Base):
         default=lambda: str(uuid4()),
     )
     company_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
         comment="ID de la empresa",
     )
     presupuesto_cuenta_id: Mapped[str] = mapped_column(
-        String(36),
+        PG_UUID(),
         ForeignKey("presupuestos_cuentas.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
