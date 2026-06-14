@@ -80,6 +80,7 @@ import {
   Plug,
   Brain,
   Activity,
+  Scale,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
@@ -99,6 +100,7 @@ import { ContaECProjects } from '@/components/contaec-projects';
 import { ContaECIntegrations } from '@/components/contaec-integrations';
 import { ContaECMLAI } from '@/components/contaec-ml-ai';
 import { ContaECAccounting } from '@/components/contaec-accounting';
+import { LOPDPolicy, TermsPolicy, RefundPolicy } from '@/components/policies';
 import {
   logout,
   clearTokens,
@@ -128,7 +130,7 @@ interface ContaECDashboardProps {
   onLogout: () => void;
 }
 
-type NavItem = 'dashboard' | 'companies' | 'sri' | 'license' | 'invoices' | 'proformas' | 'products' | 'inventory' | 'warehouses' | 'pos' | 'hr' | 'suppliers' | 'purchases' | 'budgets' | 'crm' | 'projects' | 'integrations' | 'mlai' | 'accounting' | 'audit' | 'settings' | 'admin-overview' | 'admin-users' | 'admin-system' | 'admin-licenses' | 'admin-security';
+type NavItem = 'dashboard' | 'companies' | 'sri' | 'license' | 'invoices' | 'proformas' | 'products' | 'inventory' | 'warehouses' | 'pos' | 'hr' | 'suppliers' | 'purchases' | 'budgets' | 'crm' | 'projects' | 'integrations' | 'mlai' | 'accounting' | 'audit' | 'settings' | 'policies' | 'admin-overview' | 'admin-users' | 'admin-system' | 'admin-licenses' | 'admin-security';
 
 export function ContaECDashboard({ user, onLogout }: ContaECDashboardProps) {
   const { theme, setTheme } = useTheme();
@@ -254,6 +256,7 @@ export function ContaECDashboard({ user, onLogout }: ContaECDashboardProps) {
     { id: 'accounting', label: 'Contabilidad', icon: <BookOpen className="h-4 w-4" /> },
     { id: 'audit', label: 'Auditoria', icon: <ScrollText className="h-4 w-4" /> },
     { id: 'settings', label: 'Configuracion', icon: <Wrench className="h-4 w-4" /> },
+    { id: 'policies', label: 'Politicas', icon: <Scale className="h-4 w-4" /> },
   ];
 
   const adminNavItems: { id: NavItem; label: string; icon: React.ReactNode }[] = [
@@ -262,6 +265,7 @@ export function ContaECDashboard({ user, onLogout }: ContaECDashboardProps) {
     { id: 'admin-system', label: 'Sistema', icon: <Server className="h-4 w-4" /> },
     { id: 'admin-licenses', label: 'Licencias', icon: <Key className="h-4 w-4" /> },
     { id: 'admin-security', label: 'Seguridad', icon: <ShieldAlert className="h-4 w-4" /> },
+    { id: 'policies', label: 'Politicas', icon: <Scale className="h-4 w-4" /> },
   ];
 
   // Admin users see admin tabs, regular users see normal nav items
@@ -411,6 +415,8 @@ export function ContaECDashboard({ user, onLogout }: ContaECDashboardProps) {
             <div className="flex items-center justify-center h-64">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
+          ) : activeNav === 'policies' ? (
+            <PoliciesView />
           ) : user.is_admin ? (
             <AdminDashboardView onLogout={onLogout} activeAdminTab={activeNav} />
           ) : (
@@ -1562,6 +1568,87 @@ function InvoicesView({ invoiceStats }: { invoiceStats: InvoiceStatsType | null 
   );
 }
 
+// ─── Policies View (visible to all users) ─────────────────────────────────
+type PolicyType = 'lopd' | 'terms' | 'refund' | null;
+
+function PoliciesView() {
+  const [activePolicy, setActivePolicy] = useState<PolicyType>(null);
+
+  const policies = [
+    {
+      key: 'lopd' as PolicyType,
+      title: 'L.O.P.D',
+      subtitle: 'Ley Organica de Proteccion de Datos Personales',
+      description: 'Marco legal para la proteccion de datos personales en Ecuador',
+      icon: Shield,
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-100 dark:bg-blue-900/30',
+    },
+    {
+      key: 'terms' as PolicyType,
+      title: 'Terminos y Condiciones',
+      subtitle: 'Acuerdo de uso del sistema ContaEC',
+      description: 'Reglas y condiciones para el uso de la plataforma',
+      icon: FileText,
+      color: 'text-emerald-600',
+      bgColor: 'bg-emerald-100 dark:bg-emerald-900/30',
+    },
+    {
+      key: 'refund' as PolicyType,
+      title: 'Politica de Reembolso',
+      subtitle: 'Condiciones de devolucion y reembolso',
+      description: 'Politicas aplicables a reembolsos y devoluciones',
+      icon: DollarSign,
+      color: 'text-amber-600',
+      bgColor: 'bg-amber-100 dark:bg-amber-900/30',
+    },
+  ];
+
+  if (activePolicy) {
+    return (
+      <div className="space-y-6">
+        <Button variant="outline" size="sm" onClick={() => setActivePolicy(null)} className="gap-2">
+          <ChevronLeft className="h-4 w-4" />
+          Volver a Politicas
+        </Button>
+        {activePolicy === 'lopd' && <LOPDPolicy />}
+        {activePolicy === 'terms' && <TermsPolicy />}
+        {activePolicy === 'refund' && <RefundPolicy />}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold">Politicas de ContaEC</h2>
+        <p className="text-muted-foreground">Informacion legal y politicas de uso del sistema</p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {policies.map((p) => (
+          <Card
+            key={p.key}
+            className="cursor-pointer hover:border-primary transition-colors border-2"
+            onClick={() => setActivePolicy(p.key)}
+          >
+            <CardHeader>
+              <div className={`rounded-lg ${p.bgColor} w-12 h-12 flex items-center justify-center mb-3`}>
+                <p.icon className={`h-6 w-6 ${p.color}`} />
+              </div>
+              <CardTitle className="text-lg">{p.title}</CardTitle>
+              <CardDescription>{p.subtitle}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">{p.description}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Admin Dashboard View (integrated into main dashboard) ────────────────
 function AdminDashboardView({ onLogout, activeAdminTab }: { onLogout: () => void; activeAdminTab: string }) {
   const [adminStats, setAdminStats] = useState<{
@@ -1605,6 +1692,8 @@ function AdminDashboardView({ onLogout, activeAdminTab }: { onLogout: () => void
   const [editingPrice, setEditingPrice] = useState<string | null>(null);
   const [priceForm, setPriceForm] = useState<Record<string, number>>({});
   const [savingPrices, setSavingPrices] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const loadAdminData = useCallback(async () => {
     setLoading(true);
@@ -1723,6 +1812,28 @@ function AdminDashboardView({ onLogout, activeAdminTab }: { onLogout: () => void
     }
   }
 
+  async function handleDeleteUser(userId: string, email: string) {
+    setDeleting(true);
+    try {
+      const token = localStorage.getItem('contaec_token') || '';
+      const res = await fetch(`/api/v1/admin/users/${userId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({ detail: 'Error al eliminar usuario' }));
+        throw new Error(error.detail || 'Error al eliminar usuario');
+      }
+      toast.success(`Usuario ${email} eliminado con toda su informacion asociada`);
+      setDeleteDialogOpen(false);
+      loadAdminData();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Error al eliminar usuario');
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   if (loading && !adminStats) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -1832,6 +1943,14 @@ function AdminDashboardView({ onLogout, activeAdminTab }: { onLogout: () => void
                               onClick={() => handleToggleUser(u.id, u.is_active)}
                             >
                               {u.is_active ? 'Desactivar' : 'Activar'}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => { setSelectedUserId(u.id); setDeleteDialogOpen(true); }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         </TableCell>
@@ -2169,6 +2288,43 @@ function AdminDashboardView({ onLogout, activeAdminTab }: { onLogout: () => void
               {modifying ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Guardar Cambios
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Eliminar Usuario
+            </DialogTitle>
+            <DialogDescription>
+              Esta accion eliminara permanentemente al usuario y toda su informacion asociada (empresas, clientes, comprobantes, configuracion, etc.). Esta accion no se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Accion irreversible</AlertTitle>
+              <AlertDescription>
+                Se eliminara toda la informacion atada a este usuario.
+              </AlertDescription>
+            </Alert>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => handleDeleteUser(selectedUserId, adminUsers.find(u => u.id === selectedUserId)?.email || '')}
+                disabled={deleting}
+              >
+                {deleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Eliminar Permanentemente
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
