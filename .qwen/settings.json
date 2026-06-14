@@ -18,7 +18,8 @@
       "Bash(curl *)",
       "Bash(npm run *)",
       "Bash(dir *)",
-      "Bash(ssh *)"
+      "Bash(ssh *)",
+      "Bash(rd *)"
     ]
   },
   "$version": 4
