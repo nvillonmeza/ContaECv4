@@ -3,6 +3,7 @@ ContaEC - Esquemas de autenticación
 Pydantic schemas para login, registro, tokens y actualización de usuario
 """
 import re
+from uuid import UUID
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
@@ -150,7 +151,7 @@ class RefreshTokenRequest(BaseModel):
 
 class UserResponse(BaseModel):
     """Esquema de respuesta con datos del usuario (sin datos sensibles)"""
-    id: str = Field(..., description="ID único del usuario")
+    id: UUID = Field(..., description="ID único del usuario")
     email: str = Field(..., description="Correo electrónico")
     full_name: str = Field(..., description="Nombre completo")
     is_active: bool = Field(..., description="Indica si el usuario está activo")

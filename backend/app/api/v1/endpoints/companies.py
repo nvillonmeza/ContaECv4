@@ -170,16 +170,28 @@ async def lookup_ruc(
             )
             if response.status_code == 200:
                 data = response.json()
-                return {
-                    "ruc": ruc,
-                    "razon_social": data.get("razonSocial", ""),
-                    "nombre_comercial": data.get("nombreComercial", ""),
-                    "dir_matriz": data.get("dirMatriz", ""),
-                    "obligado_contabilidad": data.get("obligadoContabilidad", "NO"),
-                    "contribuyente_especial": data.get("contribuyenteEspecial", ""),
-                    "agente_retencion": data.get("agenteRetencion", ""),
-                    "contribuyente_rimpe": data.get("contribuyenteRimpe", ""),
-                }
+                if data.get("razonSocial"):
+                    return {
+                        "ruc": ruc,
+                        "razon_social": data.get("razonSocial", ""),
+                        "nombre_comercial": data.get("nombreComercial", ""),
+                        "dir_matriz": data.get("dirMatriz", ""),
+                        "obligado_contabilidad": data.get("obligadoContabilidad", "NO"),
+                        "contribuyente_especial": data.get("contribuyenteEspecial", ""),
+                        "agente_retencion": data.get("agenteRetencion", ""),
+                        "contribuyente_rimpe": data.get("contribuyenteRimpe", ""),
+                    }
+                else:
+                    logger.warning(f"SRI no encontro datos para RUC {ruc}: {data}")
+                    return {
+                        "ruc": ruc,
+                        "message": "RUC no encontrado en el SRI. Complete los datos manualmente.",
+                        "razon_social": "",
+                        "nombre_comercial": "",
+                        "dir_matriz": "",
+                    }
+            else:
+                logger.warning(f"SRI respondio con status {response.status_code} para RUC {ruc}")
     except Exception as e:
         logger.warning(f"Error consultando RUC {ruc} en SRI: {e}")
 
