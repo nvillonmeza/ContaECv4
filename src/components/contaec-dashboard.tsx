@@ -412,7 +412,7 @@ export function ContaECDashboard({ user, onLogout }: ContaECDashboardProps) {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : user.is_admin ? (
-            <AdminDashboardView />
+            <AdminDashboardView onLogout={onLogout} />
           ) : (
             <>
               {activeNav === 'dashboard' && (
@@ -1563,7 +1563,7 @@ function InvoicesView({ invoiceStats }: { invoiceStats: InvoiceStatsType | null 
 }
 
 // ─── Admin Dashboard View (integrated into main dashboard) ────────────────
-function AdminDashboardView() {
+function AdminDashboardView({ onLogout }: { onLogout: () => void }) {
   const [activeAdminTab, setActiveAdminTab] = useState('overview');
   const [adminStats, setAdminStats] = useState<{
     total_users: number;
