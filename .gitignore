@@ -55,6 +55,8 @@ prompt
 server.log
 # Skills directory
 /skills/
-.qwen/
+.qwen/*
+.qwen/settings.json
+.qwen/settings.json.orig
 .qwen/skills/
 .qwen/skills/**/*

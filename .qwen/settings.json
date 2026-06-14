@@ -15,7 +15,9 @@
       "Bash(npx *)",
       "Bash(node *)",
       "Bash(winget *)",
-      "Bash(curl *)"
+      "Bash(curl *)",
+      "Bash(npm run *)",
+      "Bash(dir *)"
     ]
   },
   "$version": 4
