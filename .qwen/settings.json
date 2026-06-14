@@ -17,7 +17,8 @@
       "Bash(winget *)",
       "Bash(curl *)",
       "Bash(npm run *)",
-      "Bash(dir *)"
+      "Bash(dir *)",
+      "Bash(ssh *)"
     ]
   },
   "$version": 4
