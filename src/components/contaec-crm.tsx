@@ -146,7 +146,8 @@ function getEtapaBadge(etapa: string) {
   return <Badge variant="outline">{etapa}</Badge>;
 }
 
-function getActividadBadge(estado: string) {
+function getActividadBadge(estado: string | undefined) {
+  if (!estado) return <Badge variant="outline">-</Badge>;
   const e = ESTADOS_ACTIVIDAD.find((x) => x.key === estado);
   if (e) return <Badge className={`${e.badgeClass} text-white text-xs`}>{e.label}</Badge>;
   return <Badge variant="outline">{estado}</Badge>;
@@ -158,7 +159,8 @@ function getLeadStatusBadge(status: string) {
   return <Badge variant="outline">{status}</Badge>;
 }
 
-function getActividadTipoBadge(tipo: string) {
+function getActividadTipoBadge(tipo: string | undefined) {
+  if (!tipo) return <Badge variant="outline">-</Badge>;
   const t = TIPOS_ACTIVIDAD.find((x) => x.key === tipo);
   if (t) return <Badge variant="outline" className="gap-1">{<t.icon className="h-3 w-3" />}{t.label}</Badge>;
   return <Badge variant="outline">{tipo}</Badge>;

@@ -1,12 +1,16 @@
-import { config as nextCoreWebVitals } from "eslint-config-next/core-web-vitals.js";
-import { config as nextTypescript } from "eslint-config-next/typescript.js";
+import nextCoreWebVitals from "eslint-config-next/core-web-vitals.js";
+import nextTypescript from "eslint-config-next/typescript.js";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const eslintConfig = [...nextCoreWebVitals, ...nextTypescript, {
+// eslint-config-next exports are CommonJS, so we need to access the config property
+const coreWebVitalsConfig = nextCoreWebVitals.config || nextCoreWebVitals;
+const typescriptConfig = nextTypescript.config || nextTypescript;
+
+const eslintConfig = [...coreWebVitalsConfig, ...typescriptConfig, {
   rules: {
     // TypeScript rules - core enabled, permissive on edge cases
     "@typescript-eslint/no-explicit-any": "warn",
