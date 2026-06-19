@@ -570,7 +570,6 @@ sudo systemctl status clamav-freshclam
 ln -sf /opt/contaec/backend/uploads /opt/contaec/public/uploads
 ls -la /opt/contaec/public/
 ls -la /opt/contaec/backend/uploads/
-
 ---
 
 ## Estructura del Proyecto
