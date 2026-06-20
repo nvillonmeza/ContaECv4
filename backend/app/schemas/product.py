@@ -46,16 +46,16 @@ class ProductCreate(BaseModel):
         examples=["100.00"],
     )
     iva_codigo: str = Field(
-        ...,
+        default="4",
         max_length=2,
-        description="Código de tarifa de IVA según Tabla 16 del SRI (ej: 10 para 13%)",
-        examples=["10"],
+        description="Código de tarifa de IVA según Tabla 16 del SRI (4=15% default, 10=13%, 2=12%, etc)",
+        examples=["4"],
     )
     iva_porcentaje: Decimal = Field(
-        ...,
+        default=Decimal("15.00"),
         ge=0,
-        description="Porcentaje de IVA (0, 5, 8, 12, 13, 14, 15)",
-        examples=["13.00"],
+        description="Porcentaje de IVA (default 15%, también: 0, 5, 8, 12, 13, 14)",
+        examples=["15.00"],
     )
     iva_incluido: bool | None = Field(
         None,

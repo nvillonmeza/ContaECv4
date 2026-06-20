@@ -232,8 +232,33 @@ async def create_comprobante(
     """
     # 1. Validar empresa
     company = await _get_company_for_user(db, data.company_id, current_user.id)
-    
-    # 1b. Obtener configuración del usuario para determinar ambiente
+
+    # 1b. Validar límite de comprobantes mensuales
+    from app.core.utils import get_license_limits
+
+    limits = get_license_limits(current_user)
+    max_comprobantes = limits['max_comprobantes_month']
+
+    # Contar comprobantes emitidos este mes por la empresa
+    now = datetime.now(timezone.utc)
+    first_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    result = await db.execute(
+        select(func.count(Comprobante.id)).where(
+            Comprobante.company_id == data.company_id,
+            Comprobante.created_at >= first_of_month,
+        )
+    )
+    current_count = result.scalar() or 0
+
+    if current_count >= max_comprobantes:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Límite de comprobantes mensuales alcanzado. Tu plan actual permite {max_comprobantes} comprobantes este mes. "
+                   f"Contacta a soporte para actualizar tu licencia."
+        )
+
+    # 1c. Obtener configuración del usuario para determinar ambiente
     result_config = await db.execute(
         select(UserConfig).where(UserConfig.user_id == current_user.id)
     )
@@ -2002,5 +2027,113 @@ async def corregir_comprobante(
         f"Comprobante corregido: tipo={comprobante.tipo_comprobante}, "
         f"secuencial={comprobante.secuencial}, estado={comprobante.estado}"
     )
-    
+
     return ComprobanteResponse.model_validate(comprobante)
+
+
+# ==========================================
+# Endpoint de Estados
+# ==========================================
+
+@router.get("/estados")
+async def listar_estados_comprobante():
+    """
+    Obtener lista de estados posibles del comprobante electrónico.
+
+    Retorna todos los estados con su descripción, siglas SRI equivalentes,
+    y si es un estado interno o del SRI.
+    """
+    from app.schemas.comprobante import (
+        ComprobanteEstadoEnum,
+        estado_to_sigla,
+        sigla_to_estado,
+    )
+
+    estados_info = {
+        "borrador": {
+            "nombre": "Borrador",
+            "descripcion": "Comprobante en estado borrador, aún no procesado",
+            "tipo": "interno",
+            "siglas_sri": None,
+            "acciones_permitidas": ["firmar", "validar", "eliminar"],
+        },
+        "firmado": {
+            "nombre": "Firmado",
+            "descripcion": "Comprobante firmado digitalmente, pendiente de envío al SRI",
+            "tipo": "interno",
+            "siglas_sri": None,
+            "acciones_permitidas": ["enviar", "procesar"],
+        },
+        "enviado": {
+            "nombre": "Enviado",
+            "descripcion": "Comprobante enviado al SRI, pendiente de autorización",
+            "tipo": "sri",
+            "siglas_sri": "PPR",
+            "acciones_permitidas": ["consultar"],
+        },
+        "autorizado": {
+            "nombre": "Autorizado",
+            "descripcion": "Comprobante autorizado por el SRI",
+            "tipo": "sri",
+            "siglas_sri": "AUT",
+            "acciones_permitidas": ["anular", "enviar_email", "generar_ride"],
+        },
+        "rechazado": {
+            "nombre": "Rechazado",
+            "descripcion": "Comprobante rechazado por el SRI",
+            "tipo": "sri",
+            "siglas_sri": "NAT",
+            "acciones_permitidas": ["corregir"],
+        },
+        "devuelto": {
+            "nombre": "Devuelto",
+            "descripcion": "Comprobante devuelto por el SRI para corrección",
+            "tipo": "sri",
+            "siglas_sri": "DEV",
+            "acciones_permitidas": ["corregir"],
+        },
+        "caducado": {
+            "nombre": "Caducado",
+            "descripcion": "Comprobante que excedió el tiempo de autorización",
+            "tipo": "sri",
+            "siglas_sri": "CAD",
+            "acciones_permitidas": [],
+        },
+        "anulado": {
+            "nombre": "Anulado",
+            "descripcion": "Comprobante anulado por el emisor",
+            "tipo": "sri",
+            "siglas_sri": "ANU",
+            "acciones_permitidas": [],
+        },
+        "contingencia": {
+            "nombre": "Contingencia",
+            "descripcion": "Comprobante generado en modo contingencia (offline)",
+            "tipo": "sri",
+            "siglas_sri": "CON",
+            "acciones_permitidas": ["enviar_cuando_online"],
+        },
+    }
+
+    return {
+        "estados": [
+            {
+                "valor": estado.value,
+                "nombre": estados_info.get(estado.value, {}).get("nombre", estado.value),
+                "descripcion": estados_info.get(estado.value, {}).get("descripcion", ""),
+                "tipo": estados_info.get(estado.value, {}).get("tipo", "desconocido"),
+                "siglas_sri": estados_info.get(estado.value, {}).get("siglas_sri"),
+                "acciones_permitidas": estados_info.get(estado.value, {}).get("acciones_permitidas", []),
+            }
+            for estado in ComprobanteEstadoEnum
+        ],
+        "mapeo_siglas": {
+            "PPR": "enviado",
+            "AUT": "autorizado",
+            "NAT": "rechazado",
+            "DEV": "devuelto",
+            "CAD": "caducado",
+            "ANU": "anulado",
+            "CON": "contingencia",
+        },
+    }

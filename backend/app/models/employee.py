@@ -338,6 +338,44 @@ class Employee(Base):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
+    # Relaciones de nuevos modelos HR (Fase 1)
+    contratos_laborales: Mapped[list["Contrato"]] = relationship(  # noqa: F821
+        "Contrato",
+        foreign_keys="Contrato.employee_id",
+        back_populates="employee",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    vacaciones_periodos: Mapped[list["VacacionesPeriodo"]] = relationship(  # noqa: F821
+        "VacacionesPeriodo",
+        back_populates="employee",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    vacaciones_solicitudes: Mapped[list["VacacionesSolicitud"]] = relationship(  # noqa: F821
+        "VacacionesSolicitud",
+        back_populates="employee",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    prestamos: Mapped[list["PrestamoEmpleado"]] = relationship(  # noqa: F821
+        "PrestamoEmpleado",
+        back_populates="employee",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    historial_laboral: Mapped[list["HistorialLaboral"]] = relationship(  # noqa: F821
+        "HistorialLaboral",
+        back_populates="employee",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    turnos_asignaciones: Mapped[list["TurnoAsignacion"]] = relationship(  # noqa: F821
+        "TurnoAsignacion",
+        back_populates="employee",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
 
     def __repr__(self) -> str:
         return (

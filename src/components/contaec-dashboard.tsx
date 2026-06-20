@@ -85,6 +85,7 @@ import {
 import { useTheme } from 'next-themes';
 import { toast } from 'sonner';
 import { getCurrentLocale, setCurrentLocale, getLocaleLabel, LOCALES, t, type Locale } from '@/lib/i18n';
+import { useLicense, FEATURE_LABELS } from '@/hooks/useLicense';
 import { ContaECSettings } from '@/components/contaec-settings';
 import { ContaECInvoices } from '@/components/contaec-invoices';
 import { ContaECInventory } from '@/components/contaec-inventory';
@@ -135,9 +136,10 @@ type NavItem = 'dashboard' | 'companies' | 'sri' | 'license' | 'invoices' | 'pro
 
 export function ContaECDashboard({ user, onLogout }: ContaECDashboardProps) {
   const { theme, setTheme } = useTheme();
+  const { license, loading: licenseLoading, checkLimit, showUpgradePrompt, hasFeature } = useLicense();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeNav, setActiveNav] = useState<NavItem>('dashboard');
-  const [license, setLicense] = useState<LicenseStatusType | null>(null);
+  const [licenseData, setLicense] = useState<LicenseStatusType | null>(null);
   const [companies, setCompanies] = useState<CompanyType[]>([]);
   const selectedCompanyId = companies.length > 0 ? companies[0].id : undefined;
   const [invoiceStats, setInvoiceStats] = useState<InvoiceStatsType | null>(null);
@@ -199,7 +201,7 @@ export function ContaECDashboard({ user, onLogout }: ContaECDashboardProps) {
 
       if (results[0].status === 'fulfilled') {
         const lic = results[0].value;
-        setLicense(lic);
+        setLicenseData(lic);
         // Check if license expires within 30 days
         if (lic.days_remaining !== null) {
           setLicenseExpiring(lic.days_remaining <= 30 && lic.days_remaining > 0);
@@ -222,6 +224,13 @@ export function ContaECDashboard({ user, onLogout }: ContaECDashboardProps) {
   }, [loadDashboardData]);
 
   async function handleCreateCompany() {
+    // Verificar límite de empresas según el plan
+    const limitResult = await checkLimit('companies');
+    if (limitResult.isAtLimit) {
+      showUpgradePrompt('companies');
+      return;
+    }
+
     setCreatingCompany(true);
     try {
       let logoPath: string | undefined;
@@ -307,7 +316,7 @@ export function ContaECDashboard({ user, onLogout }: ContaECDashboardProps) {
     onLogout();
   }
 
-  const userNavItems: { id: NavItem; label: string; icon: React.ReactNode }[] = [
+  const userNavItems: { id: NavItem; label: string; icon: React.ReactNode; locked?: boolean; requiredTier?: string }[] = [
     { id: 'dashboard', label: t('nav.dashboard'), icon: <LayoutDashboard className="h-4 w-4" /> },
     { id: 'companies', label: t('nav.companies'), icon: <Building2 className="h-4 w-4" /> },
     { id: 'sri', label: t('nav.sri'), icon: <Shield className="h-4 w-4" /> },
@@ -316,21 +325,48 @@ export function ContaECDashboard({ user, onLogout }: ContaECDashboardProps) {
     { id: 'proformas', label: t('nav.proformas'), icon: <FileText className="h-4 w-4" /> },
     { id: 'products', label: t('nav.products'), icon: <Package className="h-4 w-4" /> },
     { id: 'inventory', label: t('nav.inventory'), icon: <Database className="h-4 w-4" /> },
-    { id: 'warehouses', label: t('nav.warehouses'), icon: <WarehouseIcon className="h-4 w-4" /> },
-    { id: 'pos', label: t('nav.pos'), icon: <Monitor className="h-4 w-4" /> },
-    { id: 'hr', label: t('nav.hr'), icon: <Users className="h-4 w-4" /> },
+    { id: 'warehouses', label: t('nav.warehouses'), icon: <WarehouseIcon className="h-4 w-4" />, locked: true, requiredTier: 'semiannual' },
+    { id: 'pos', label: t('nav.pos'), icon: <Monitor className="h-4 w-4" />, locked: true, requiredTier: 'quarterly' },
+    { id: 'hr', label: t('nav.hr'), icon: <Users className="h-4 w-4" />, locked: true, requiredTier: 'quarterly' },
     { id: 'suppliers', label: t('nav.suppliers'), icon: <Truck className="h-4 w-4" /> },
     { id: 'purchases', label: t('nav.purchases'), icon: <ShoppingCart className="h-4 w-4" /> },
-    { id: 'budgets', label: t('nav.budgets'), icon: <PieChart className="h-4 w-4" /> },
-    { id: 'crm', label: t('nav.crm'), icon: <Kanban className="h-4 w-4" /> },
-    { id: 'projects', label: t('nav.projects'), icon: <Briefcase className="h-4 w-4" /> },
-    { id: 'integrations', label: t('nav.integrations'), icon: <Plug className="h-4 w-4" /> },
-    { id: 'mlai', label: t('nav.ai'), icon: <Brain className="h-4 w-4" /> },
+    { id: 'budgets', label: t('nav.budgets'), icon: <PieChart className="h-4 w-4" />, locked: true, requiredTier: 'semiannual' },
+    { id: 'crm', label: t('nav.crm'), icon: <Kanban className="h-4 w-4" />, locked: true, requiredTier: 'semiannual' },
+    { id: 'projects', label: t('nav.projects'), icon: <Briefcase className="h-4 w-4" />, locked: true, requiredTier: 'semiannual' },
+    { id: 'integrations', label: t('nav.integrations'), icon: <Plug className="h-4 w-4" />, locked: true, requiredTier: 'semiannual' },
+    { id: 'mlai', label: t('nav.ai'), icon: <Brain className="h-4 w-4" />, locked: true, requiredTier: 'semiannual' },
     { id: 'accounting', label: t('nav.accounting'), icon: <BookOpen className="h-4 w-4" /> },
     { id: 'audit', label: t('nav.audit'), icon: <ScrollText className="h-4 w-4" /> },
     { id: 'settings', label: t('nav.settings'), icon: <Wrench className="h-4 w-4" /> },
     { id: 'policies', label: t('nav.policies'), icon: <Scale className="h-4 w-4" /> },
   ];
+
+  // Filtrar items según el plan del usuario
+  const currentTier = license?.license_type;
+  const filteredNavItems = userNavItems.filter(item => {
+    if (!item.locked) return true;
+    if (!item.requiredTier) return true;
+
+    // Plan Anual - todo disponible
+    if (currentTier === 'annual') return true;
+
+    // Plan Semestral - semiannual y menores
+    if (currentTier === 'semiannual') {
+      return ['semiannual', 'quarterly'].includes(item.requiredTier);
+    }
+
+    // Plan Trimestral - solo quarterly
+    if (currentTier === 'quarterly') {
+      return item.requiredTier === 'quarterly';
+    }
+
+    // Plan Mensual - nada de features premium
+    if (currentTier === 'monthly') {
+      return false;
+    }
+
+    return true;
+  });
 
   const adminNavItems: { id: NavItem; label: string; icon: React.ReactNode }[] = [
     { id: 'admin-overview', label: t('admin.overview'), icon: <Activity className="h-4 w-4" /> },
@@ -341,8 +377,47 @@ export function ContaECDashboard({ user, onLogout }: ContaECDashboardProps) {
     { id: 'policies', label: t('nav.policies'), icon: <Scale className="h-4 w-4" /> },
   ];
 
-  // Admin users see admin tabs, regular users see normal nav items
-  const navItems = user.is_admin ? adminNavItems : userNavItems;
+  // Admin users see admin tabs, regular users see filtered nav items
+  const navItems = user.is_admin ? adminNavItems : filteredNavItems;
+
+  // Feature mapping for access control
+  const featureMap: Record<string, keyof typeof FEATURE_LABELS> = {
+    pos: 'pos',
+    hr: 'payroll',
+    warehouses: 'multi_warehouse',
+    budgets: 'budgets',
+    crm: 'crm',
+    projects: 'projects',
+    integrations: 'ecommerce_integration',
+    mlai: 'ml_predictions',
+  };
+
+  // Check if current view requires feature access
+  const currentFeature = activeNav in featureMap ? featureMap[activeNav] : null;
+  const canAccessCurrentView = !currentFeature || hasFeature(currentFeature);
+
+  // Render locked screen
+  const renderLockedView = (featureName: keyof typeof FEATURE_LABELS) => (
+    <div className="flex flex-col items-center justify-center p-12 text-center space-y-4">
+      <div className="text-6xl mb-2">🔒</div>
+      <h3 className="text-xl font-bold">{FEATURE_LABELS[featureName]} no disponible</h3>
+      <p className="text-muted-foreground max-w-md">
+        Esta funcionalidad no está incluida en tu plan actual
+        {license?.license_type && `(Plan ${license.license_type === 'monthly' ? 'Mensual' : license.license_type === 'quarterly' ? 'Trimestral' : license.license_type === 'semiannual' ? 'Semestral' : 'Anual'})`}.
+      </p>
+      <div className="flex gap-2">
+        <Button variant="outline" onClick={() => setActiveNav('license')}>
+          Ver Planes Disponibles
+        </Button>
+        <Button onClick={() => {
+          const msg = `Hola, quiero información sobre ${FEATURE_LABELS[featureName]}. Mi correo es: ${user.email}`;
+          window.open(`https://wa.me/593960068866?text=${encodeURIComponent(msg)}`, '_blank');
+        }}>
+          Contactar por WhatsApp
+        </Button>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -377,15 +452,37 @@ export function ContaECDashboard({ user, onLogout }: ContaECDashboardProps) {
           {navItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveNav(item.id)}
+              onClick={() => {
+                if (item.locked && !user.is_admin) {
+                  const featureMap: Record<string, string> = {
+                    pos: 'pos',
+                    hr: 'payroll',
+                    warehouses: 'multi_warehouse',
+                    budgets: 'budgets',
+                    crm: 'crm',
+                    projects: 'projects',
+                    integrations: 'ecommerce_integration',
+                    mlai: 'ml_predictions',
+                  };
+                  const feature = featureMap[item.id];
+                  if (feature) {
+                    showUpgradePrompt(feature as keyof typeof FEATURE_LABELS);
+                    return;
+                  }
+                }
+                setActiveNav(item.id);
+              }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
                 activeNav === item.id
                   ? 'bg-primary/10 text-primary font-medium'
                   : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-              }`}
+              } ${item.locked ? 'opacity-60' : ''}`}
             >
+              {item.locked && sidebarOpen && (
+                <span className="text-xs">🔒</span>
+              )}
               {item.icon}
-              {sidebarOpen && <span>{item.label}</span>}
+              {sidebarOpen && <span>{item.label}{item.locked && ' (Premium)'}</span>}
             </button>
           ))}
         </nav>
@@ -497,7 +594,7 @@ export function ContaECDashboard({ user, onLogout }: ContaECDashboardProps) {
               {activeNav === 'dashboard' && (
                 <DashboardView
                   user={user}
-                  license={license}
+                  license={licenseData}
                   licenseExpiring={licenseExpiring}
                   companies={companies}
                   invoiceStats={invoiceStats}
@@ -520,7 +617,7 @@ export function ContaECDashboard({ user, onLogout }: ContaECDashboardProps) {
                 />
               )}
               {activeNav === 'license' && (
-                <LicenseView license={license} licenseExpiring={licenseExpiring} user={user} />
+                <LicenseView license={licenseData} licenseExpiring={licenseExpiring} user={user} />
               )}
               {activeNav === 'invoices' && (
                 <ContaECInvoices user={user} companies={companies} />
@@ -535,13 +632,13 @@ export function ContaECDashboard({ user, onLogout }: ContaECDashboardProps) {
                 <ContaECInventory user={user} companies={companies} />
               )}
               {activeNav === 'warehouses' && (
-                <ContaECWarehouses user={user} companies={companies} />
+                canAccessCurrentView ? <ContaECWarehouses user={user} companies={companies} /> : renderLockedView('multi_warehouse')
               )}
               {activeNav === 'pos' && (
-                <ContaECPOS user={user} companies={companies} />
+                canAccessCurrentView ? <ContaECPOS user={user} companies={companies} /> : renderLockedView('pos')
               )}
               {activeNav === 'hr' && (
-                <ContaECHR user={user} companies={companies} />
+                canAccessCurrentView ? <ContaECHR user={user} companies={companies} /> : renderLockedView('payroll')
               )}
               {activeNav === 'suppliers' && (
                 <ContaECSuppliers user={user} companies={companies} />
@@ -550,19 +647,19 @@ export function ContaECDashboard({ user, onLogout }: ContaECDashboardProps) {
                 <ContaECPurchases user={user} companies={companies} />
               )}
               {activeNav === 'budgets' && (
-                <ContaECBudgets user={user} companies={companies} />
+                canAccessCurrentView ? <ContaECBudgets user={user} companies={companies} /> : renderLockedView('budgets')
               )}
               {activeNav === 'crm' && (
-                <ContaECCRM user={user} companies={companies} />
+                canAccessCurrentView ? <ContaECCRM user={user} companies={companies} /> : renderLockedView('crm')
               )}
               {activeNav === 'projects' && (
-                <ContaECProjects user={user} companies={companies} />
+                canAccessCurrentView ? <ContaECProjects user={user} companies={companies} /> : renderLockedView('projects')
               )}
               {activeNav === 'integrations' && (
-                <ContaECIntegrations user={user} companies={companies} />
+                canAccessCurrentView ? <ContaECIntegrations user={user} companies={companies} /> : renderLockedView('ecommerce_integration')
               )}
               {activeNav === 'mlai' && (
-                <ContaECMLAI user={user} companies={companies} />
+                canAccessCurrentView ? <ContaECMLAI user={user} companies={companies} /> : renderLockedView('ml_predictions')
               )}
               {activeNav === 'accounting' && selectedCompanyId && (
                 <ContaECAccounting companyId={selectedCompanyId} />
@@ -986,57 +1083,69 @@ function DashboardView({
           <CardContent>
             {license ? (
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Tipo</span>
-                  <Badge variant="secondary" className="capitalize">
-                    {license.license_type || 'Sin licencia'}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Estado</span>
-                  <Badge
-                    variant={license.is_active ? 'default' : 'destructive'}
-                    className={license.is_active ? 'bg-primary' : ''}
-                  >
-                    {license.is_active ? 'Activa' : 'Inactiva'}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Expiracion</span>
-                  <span className="text-sm font-medium">
-                    {license.license_end_date
-                      ? new Date(license.license_end_date).toLocaleDateString('es-EC')
-                      : 'Sin limite'}
-                  </span>
-                </div>
-                {license.days_remaining !== null && (
+                {/* Trial Activo */}
+                {license.trial_active ? (
                   <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Estado</span>
+                      <Badge variant="default" className="bg-amber-500">En Prueba</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Días Restantes</span>
+                      <span className="text-sm font-bold text-amber-600">{license.trial_days_remaining} días</span>
+                    </div>
                     <Separator />
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Dias Restantes</span>
-                      <span
-                        className={`text-sm font-medium ${
-                          license.days_remaining <= 0
-                            ? 'text-destructive'
-                            : license.days_remaining <= 30
-                            ? 'text-amber-500'
-                            : 'text-emerald-600'
-                        }`}
-                      >
-                        {license.days_remaining} dias
+                      <span className="text-sm text-muted-foreground">Fin del Trial</span>
+                      <span className="text-sm font-medium">
+                        {license.trial_end_date
+                          ? new Date(license.trial_end_date).toLocaleDateString('es-EC')
+                          : 'N/A'}
                       </span>
                     </div>
                   </>
-                )}
-                {license.is_trial && license.trial_days_remaining !== null && (
+                ) : license.license_active ? (
                   <>
-                    <Separator />
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Prueba (trial)</span>
-                      <Badge variant={license.trial_days_remaining > 0 ? 'default' : 'destructive'} className="text-xs">
-                        {license.trial_days_remaining > 0 ? `${license.trial_days_remaining} dias` : 'Expirado'}
+                      <span className="text-sm text-muted-foreground">Estado</span>
+                      <Badge variant="default" className="bg-emerald-500">Activa</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Tipo</span>
+                      <Badge variant="secondary" className="capitalize">
+                        {license.license_type || 'N/A'}
                       </Badge>
                     </div>
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Días Restantes</span>
+                      <span className={`text-sm font-bold ${
+                        (license.license_days_remaining ?? 0) <= 30 ? 'text-amber-500' : 'text-emerald-600'
+                      }`}>
+                        {license.license_days_remaining ?? 'N/A'} días
+                      </span>
+                    </div>
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Vence</span>
+                      <span className="text-sm font-medium">
+                        {license.license_end_date
+                          ? new Date(license.license_end_date).toLocaleDateString('es-EC')
+                          : 'N/A'}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Estado</span>
+                      <Badge variant="destructive">Inactiva</Badge>
+                    </div>
+                    {license.license_expired && (
+                      <p className="text-xs text-destructive">
+                        Su licencia ha expirado. Adquiera un plan para continuar.
+                      </p>
+                    )}
                   </>
                 )}
               </div>
@@ -1604,26 +1713,62 @@ function LicenseView({
   user: UserType;
 }) {
   const [licenseOptions, setLicenseOptions] = useState<LicenseOptionsType | null>(null);
+  const [licenseTiers, setLicenseTiers] = useState<{
+    tiers: Record<string, {
+      price: number;
+      months: number;
+      label: string;
+      max_companies: number;
+      max_users_per_company: number;
+      max_comprobantes_month: number;
+      max_employees: number;
+      max_products: number;
+      features: Record<string, boolean>;
+    }>;
+  } | null>(null);
   const [loadingOptions, setLoadingOptions] = useState(false);
+  const [loadingTiers, setLoadingTiers] = useState(false);
 
+  // Cargar opciones y tiers al montar
   useEffect(() => {
-    if (!license) {
-      setLoadingOptions(true);
-      getLicenseOptions()
-        .then((data) => {
-          if (data && Array.isArray(data.options)) setLicenseOptions(data);
-        })
-        .catch(() => toast.error('Error al cargar opciones de licencia'))
-        .finally(() => setLoadingOptions(false));
-    }
-  }, [license]);
+    setLoadingOptions(true);
+    setLoadingTiers(true);
+    Promise.allSettled([
+      getLicenseOptions(),
+      fetch('/api/v1/licenses/tiers').then(r => r.ok ? r.json() : Promise.reject()).catch(() => null),
+    ]).then(([optionsResult, tiersResult]) => {
+      if (optionsResult.status === 'fulfilled') {
+        setLicenseOptions(optionsResult.value);
+      }
+      if (tiersResult.status === 'fulfilled' && tiersResult.value) {
+        setLicenseTiers(tiersResult.value);
+      }
+    }).catch(() => toast.error('Error al cargar planes')).finally(() => {
+      setLoadingOptions(false);
+      setLoadingTiers(false);
+    });
+  }, []);
+
+  // Determinar estado mostrado consistente
+  const isTrialActive = license?.trial_active ?? false;
+  const isLicenseActive = license?.license_active ?? false;
+  const effectiveActive = isTrialActive || isLicenseActive;
+  const effectiveExpired = !effectiveActive && (license?.license_expired ?? false);
+  const effectiveDaysRemaining = license?.days_remaining ?? license?.trial_days_remaining ?? null;
+
+  // Handler para WhatsApp
+  const handleWhatsAppClick = (planType: string, price: number, months: number) => {
+    const periodText = months === 1 ? '1 mes' : months === 3 ? '3 meses' : months === 6 ? '6 meses' : '12 meses';
+    const msg = `Hola, quiero adquirir/renovar mi licencia de ContaEC:\n\n• Plan: ${periodText}\n• Precio: $${price.toFixed(2)} USD\n• Mi correo: ${user.email}\n\nEspero información para el pago. Gracias.`;
+    window.open(`https://wa.me/593960068866?text=${encodeURIComponent(msg)}`, '_blank');
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold">Licencia</h2>
         <p className="text-muted-foreground">
-          Informacion de su licencia ContaEC
+          Informacion de su licencia ContaEC y planes disponibles
         </p>
       </div>
 
@@ -1637,174 +1782,375 @@ function LicenseView({
         </Alert>
       )}
 
-      {/* Trial Status in LicenseView */}
-      {license?.is_trial && license.trial_days_remaining !== null && (
-        <Card className={license.trial_days_remaining <= 3 ? 'border-amber-500' : ''}>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Clock className="h-4 w-4 text-amber-500" />
-              Periodo de Prueba
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Estado</span>
-              <Badge variant={license.trial_days_remaining > 0 ? 'default' : 'destructive'}>
-                {license.trial_days_remaining > 0 ? 'Activo' : 'Expirado'}
-              </Badge>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Dias restantes</span>
-              <span className="text-sm font-medium">{license.trial_days_remaining} dias</span>
-            </div>
-            {license.trial_start_date && (
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Inicio</span>
-                <span className="text-sm">{new Date(license.trial_start_date).toLocaleDateString('es-EC')}</span>
-              </div>
-            )}
-            {license.trial_end_date && (
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Fin</span>
-                <span className="text-sm">{new Date(license.trial_end_date).toLocaleDateString('es-EC')}</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      {/* === ESTADO ACTUAL (CONSOLIDADO) === */}
+      {license && (
+        <>
+          {/* Trial Activo */}
+          {isTrialActive && (
+            <Card className="border-amber-500">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-amber-500" />
+                  Periodo de Prueba Activo
+                </CardTitle>
+                <CardDescription>Su plan actual es de prueba por 15 días</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Estado</span>
+                    <Badge variant="default" className="bg-amber-500">Activo</Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Dias restantes</span>
+                    <span className="text-sm font-bold text-amber-600">{license.trial_days_remaining} días</span>
+                  </div>
+                  {license.trial_start_date && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Inicio</span>
+                      <span className="text-sm">{new Date(license.trial_start_date).toLocaleDateString('es-EC')}</span>
+                    </div>
+                  )}
+                  {license.trial_end_date && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Fin</span>
+                      <span className="text-sm font-medium">{new Date(license.trial_end_date).toLocaleDateString('es-EC')}</span>
+                    </div>
+                  )}
+                </div>
+                <Alert variant="default">
+                  <AlertTitle className="text-sm">Aproveche su prueba</AlertTitle>
+                  <AlertDescription className="text-xs">
+                    Durante el período de prueba tiene acceso completo a todas las funcionalidades.
+                    Adquiera un plan para continuar sin interrupciones.
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Licencia Activa (cuando no hay trial activo) */}
+          {!isTrialActive && isLicenseActive && (
+            <Card className="border-emerald-500">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  Licencia Activa - {license.license_type === 'monthly' ? 'Mensual' : license.license_type === 'quarterly' ? 'Trimestral' : license.license_type === 'semiannual' ? 'Semestral' : 'Anual'}
+                </CardTitle>
+                <CardDescription>Plan {license.license_type === 'monthly' ? 'mensual' : license.license_type === 'quarterly' ? 'trimestral' : license.license_type === 'semiannual' ? 'semestral' : 'anual'} vigente</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Estado</span>
+                    <Badge variant="default" className="bg-emerald-500">Activa</Badge>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Dias restantes</span>
+                    <span className="text-sm font-bold text-emerald-600">{license.license_days_remaining ?? 'N/A'} días</span>
+                  </div>
+                  {license.license_start_date && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Inicio</span>
+                      <span className="text-sm">{new Date(license.license_start_date).toLocaleDateString('es-EC')}</span>
+                    </div>
+                  )}
+                  {license.license_end_date && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-muted-foreground">Vence</span>
+                      <span className="text-sm font-medium">{new Date(license.license_end_date).toLocaleDateString('es-EC')}</span>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Trial Expirado sin Licencia */}
+          {!effectiveActive && (license?.is_trial || effectiveExpired) && (
+            <Card className="border-destructive">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <XCircle className="h-4 w-4 text-destructive" />
+                  {license?.is_trial ? 'Período de Prueba Expirado' : 'Licencia Expirada'}
+                </CardTitle>
+                <CardDescription>Necesita adquirir o renovar un plan para continuar</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  {license?.is_trial
+                    ? `Su período de prueba de 15 días finalizó el ${license.trial_end_date ? new Date(license.trial_end_date).toLocaleDateString('es-EC') : ''}.`
+                    : `Su licencia venció el ${license.license_end_date ? new Date(license.license_end_date).toLocaleDateString('es-EC') : ''}.`
+                  }
+                </p>
+                <p className="text-sm mt-2">Seleccione un plan a continuación para continuar usando ContaEC.</p>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
 
-      {license ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Detalles de Licencia</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Tipo</span>
-                <Badge className="capitalize bg-primary">{license.license_type || 'Sin licencia'}</Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Estado</span>
-                <Badge variant={license.is_active ? 'default' : 'destructive'}>
-                  {license.is_active ? 'Activa' : 'Inactiva'}
-                </Badge>
-              </div>
-              <Separator />
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Fecha de Expiracion</span>
-                <span className="text-sm font-medium">
-                  {license.license_end_date
-                    ? new Date(license.license_end_date).toLocaleDateString('es-EC', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })
-                    : 'Sin limite'}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Fecha de Activacion</span>
-                <span className="text-sm font-medium">
-                  {license.license_start_date
-                    ? new Date(license.license_start_date).toLocaleDateString('es-EC', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })
-                    : 'No disponible'}
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Estado de Licencia</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Expirada</span>
-                <Badge variant={license.is_expired ? 'destructive' : 'default'}>
-                  {license.is_expired ? 'Si' : 'No'}
-                </Badge>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Dias Restantes</span>
-                <span className={`text-sm font-medium ${
-                  license.days_remaining === null
-                    ? ''
-                    : license.days_remaining <= 0
-                    ? 'text-destructive'
-                    : license.days_remaining <= 30
-                    ? 'text-amber-500'
-                    : 'text-emerald-600'
+      {/* === PLANES DISPONIBLES CON TABLA COMPARATIVA === */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <DollarSign className="h-4 w-4 text-primary" />
+            Planes y Precios
+          </CardTitle>
+          <CardDescription>
+            Compare los planes disponibles y seleccione el que mejor se adapte a sus necesidades
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Tarjetas de precios */}
+          {loadingOptions ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : licenseOptions ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {licenseOptions.options.map((option) => (
+                <Card key={option.type} className={`hover:border-primary transition-colors ${
+                  license?.license_type === option.type ? 'border-primary ring-2 ring-primary/20' : ''
                 }`}>
-                  {license.days_remaining !== null ? `${license.days_remaining} dias` : 'Sin limite'}
-                </span>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg">{option.label}</CardTitle>
+                    <CardDescription>{option.months} {option.months === 1 ? 'mes' : 'meses'}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="text-center">
+                      <span className="text-3xl font-bold">${option.price.toFixed(2)}</span>
+                      <p className="text-xs text-muted-foreground">
+                        ${(option.price / option.months).toFixed(2)}/mes
+                      </p>
+                    </div>
+                    {license?.license_type === option.type && (
+                      <Badge className="w-full justify-center">Plan Actual</Badge>
+                    )}
+                    <Button
+                      className="w-full"
+                      variant={license?.license_type === option.type ? 'outline' : 'default'}
+                      onClick={() => handleWhatsAppClick(option.type, option.price, option.months)}
+                      disabled={license?.license_type === option.type}
+                    >
+                      {license?.license_type === option.type ? 'Ya tienes este plan' : 'Adquirir Plan'}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No se pudieron cargar las opciones de licencia.
+            </p>
+          )}
+
+          <Separator />
+
+          {/* Tabla comparativa detallada */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Tabla Comparativa de Planes</h3>
+            {loadingTiers ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
-              <Separator />
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Activa</span>
-                <CheckCircle2 className={`h-5 w-5 ${license.is_active ? 'text-emerald-600' : 'text-muted-foreground'}`} />
+            ) : licenseTiers?.tiers ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[200px]">Característica</TableHead>
+                      <TableHead className="text-center">Mensual</TableHead>
+                      <TableHead className="text-center">Trimestral</TableHead>
+                      <TableHead className="text-center">Semestral</TableHead>
+                      <TableHead className="text-center">Anual</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {/* Precios */}
+                    <TableRow className="bg-primary/5">
+                      <TableCell className="font-semibold">Precio</TableCell>
+                      <TableCell className="text-center font-bold">${licenseTiers.tiers.monthly?.price}</TableCell>
+                      <TableCell className="text-center font-bold">${licenseTiers.tiers.quarterly?.price}</TableCell>
+                      <TableCell className="text-center font-bold">${licenseTiers.tiers.semiannual?.price}</TableCell>
+                      <TableCell className="text-center font-bold">${licenseTiers.tiers.annual?.price}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">Duración</TableCell>
+                      <TableCell className="text-center">{licenseTiers.tiers.monthly?.months} mes</TableCell>
+                      <TableCell className="text-center">{licenseTiers.tiers.quarterly?.months} meses</TableCell>
+                      <TableCell className="text-center">{licenseTiers.tiers.semiannual?.months} meses</TableCell>
+                      <TableCell className="text-center">{licenseTiers.tiers.annual?.months} meses</TableCell>
+                    </TableRow>
+                    {/* Límites */}
+                    <TableRow className="bg-muted/30">
+                      <TableCell className="font-semibold">Límites</TableCell>
+                      <TableCell colSpan={4}></TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-muted-foreground">Empresas máx.</TableCell>
+                      <TableCell className="text-center">{licenseTiers.tiers.monthly?.max_companies}</TableCell>
+                      <TableCell className="text-center">{licenseTiers.tiers.quarterly?.max_companies}</TableCell>
+                      <TableCell className="text-center">{licenseTiers.tiers.semiannual?.max_companies}</TableCell>
+                      <TableCell className="text-center">Ilimitado</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-muted-foreground">Usuarios/empresa</TableCell>
+                      <TableCell className="text-center">{licenseTiers.tiers.monthly?.max_users_per_company}</TableCell>
+                      <TableCell className="text-center">{licenseTiers.tiers.quarterly?.max_users_per_company}</TableCell>
+                      <TableCell className="text-center">{licenseTiers.tiers.semiannual?.max_users_per_company}</TableCell>
+                      <TableCell className="text-center">Ilimitado</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-muted-foreground">Comprobantes/mes</TableCell>
+                      <TableCell className="text-center">{licenseTiers.tiers.monthly?.max_comprobantes_month}</TableCell>
+                      <TableCell className="text-center">{licenseTiers.tiers.quarterly?.max_comprobantes_month}</TableCell>
+                      <TableCell className="text-center">{licenseTiers.tiers.semiannual?.max_comprobantes_month}</TableCell>
+                      <TableCell className="text-center">Ilimitado</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-muted-foreground">Empleados</TableCell>
+                      <TableCell className="text-center">{licenseTiers.tiers.monthly?.max_employees}</TableCell>
+                      <TableCell className="text-center">{licenseTiers.tiers.quarterly?.max_employees}</TableCell>
+                      <TableCell className="text-center">{licenseTiers.tiers.semiannual?.max_employees}</TableCell>
+                      <TableCell className="text-center">Ilimitado</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-muted-foreground">Productos</TableCell>
+                      <TableCell className="text-center">{licenseTiers.tiers.monthly?.max_products}</TableCell>
+                      <TableCell className="text-center">{licenseTiers.tiers.quarterly?.max_products}</TableCell>
+                      <TableCell className="text-center">{licenseTiers.tiers.semiannual?.max_products}</TableCell>
+                      <TableCell className="text-center">Ilimitado</TableCell>
+                    </TableRow>
+                    {/* Funcionalidades */}
+                    <TableRow className="bg-muted/30">
+                      <TableCell className="font-semibold">Funcionalidades</TableCell>
+                      <TableCell colSpan={4}></TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-muted-foreground">Facturación Electrónica</TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-muted-foreground">Contabilidad Básica</TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-muted-foreground">Inventario</TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-muted-foreground">Proformas</TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-muted-foreground">Punto de Venta (POS)</TableCell>
+                      <TableCell className="text-center"><XCircle className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-muted-foreground">Nómina (RRHH)</TableCell>
+                      <TableCell className="text-center"><XCircle className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-muted-foreground">Multi-Almacén</TableCell>
+                      <TableCell className="text-center"><XCircle className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                      <TableCell className="text-center"><XCircle className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-muted-foreground">Presupuestos</TableCell>
+                      <TableCell className="text-center"><XCircle className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                      <TableCell className="text-center"><XCircle className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-muted-foreground">CRM</TableCell>
+                      <TableCell className="text-center"><XCircle className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                      <TableCell className="text-center"><XCircle className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-muted-foreground">Proyectos</TableCell>
+                      <TableCell className="text-center"><XCircle className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                      <TableCell className="text-center"><XCircle className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-muted-foreground">ML / IA</TableCell>
+                      <TableCell className="text-center"><XCircle className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                      <TableCell className="text-center"><XCircle className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-muted-foreground">Integración Bancaria</TableCell>
+                      <TableCell className="text-center"><XCircle className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-muted-foreground">Soporte Prioritario</TableCell>
+                      <TableCell className="text-center"><XCircle className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                      <TableCell className="text-center"><XCircle className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                      <TableCell className="text-center"><XCircle className="h-4 w-4 mx-auto text-muted-foreground" /></TableCell>
+                      <TableCell className="text-center"><CheckCircle2 className="h-4 w-4 mx-auto text-emerald-600" /></TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      ) : (
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No se pudo cargar la tabla comparativa.
+              </p>
+            )}
+          </div>
+
+          {/* CTA final */}
+          <div className="bg-muted/50 rounded-lg p-4 text-center">
+            <p className="text-sm text-muted-foreground mb-2">
+              ¿Necesita ayuda para seleccionar un plan?
+            </p>
+            <Button variant="outline" onClick={() => handleWhatsAppClick('consulta', 0, 0)}>
+              Contactar por WhatsApp
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {!license && (
         <div className="space-y-6">
           <Card>
             <CardContent className="py-12 text-center">
               <AlertTriangle className="h-12 w-12 mx-auto text-amber-500 mb-3" />
               <h3 className="text-lg font-medium">Sin licencia activa</h3>
               <p className="text-muted-foreground text-sm mt-1">
-                No se encontro informacion de licencia. Seleccione un plan a continuacion o contacte al administrador.
+                No se encontro informacion de licencia. Seleccione un plan a continuacion.
               </p>
             </CardContent>
           </Card>
-
-          {/* License Options */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4">Planes Disponibles</h3>
-            {loadingOptions ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
-            ) : licenseOptions ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {licenseOptions.options.map((option) => (
-                  <Card key={option.type} className="hover:border-primary transition-colors">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg">{option.label}</CardTitle>
-                      <CardDescription>{option.months} {option.months === 1 ? 'mes' : 'meses'}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="text-center">
-                        <span className="text-3xl font-bold">${option.price.toFixed(2)}</span>
-                        <p className="text-xs text-muted-foreground">
-                          ${(option.price / option.months).toFixed(2)}/mes
-                        </p>
-                      </div>
-                      <Button
-                        className="w-full"
-                        onClick={() => {
-                          const periodLabel = option.months === 1 ? '1 mes' : option.months === 3 ? '3 meses' : option.months === 6 ? '6 meses' : '12 meses';
-                          const msg = `Hola, quiero renovar mi licencia de ContaEC por ${periodLabel} ($${option.price.toFixed(2)} USD). Mi correo es: ${encodeURIComponent(user?.email || 'usuario@email.com')}.`;
-                          window.open(`https://wa.me/${licenseOptions.contact_whatsapp}?text=${msg}`, '_blank');
-                        }}
-                      >
-                        Contactar por WhatsApp
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-4">
-                No se pudieron cargar las opciones de licencia.
-              </p>
-            )}
-          </div>
         </div>
       )}
     </div>

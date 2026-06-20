@@ -556,6 +556,15 @@ async function checkLicenseExpiry(): Promise<{ alert: boolean; message: string |
   return apiGet('/v1/licenses/check-expiry');
 }
 
+async function checkFeatureAccess(featureName: string): Promise<{ feature: string; has_access: boolean; current_tier: string | null; minimum_tier_required: string | null; message: string }> {
+  return apiGet(`/v1/licenses/feature/${featureName}`);
+}
+
+async function checkLicenseLimit(limitType: string, companyId?: string): Promise<{ limit_type: string; max: number; current: number; available: number; is_at_limit: boolean; company_id?: string; period?: string }> {
+  const qs = companyId ? `?company_id=${companyId}` : '';
+  return apiGet(`/v1/licenses/check-limit/${limitType}${qs}`);
+}
+
 // Backup functions
 interface BackupInfo {
   filename: string;
@@ -4667,6 +4676,8 @@ export {
   getLicenseOptions,
   renewLicenseViaWhatsApp,
   checkLicenseExpiry,
+  checkFeatureAccess,
+  checkLicenseLimit,
   getBackups,
   createBackup,
   downloadBackup,

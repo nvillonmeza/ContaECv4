@@ -6,7 +6,7 @@ con impuestos según catálogos del SRI (Tabla 16 IVA, Tabla 18 ICE)
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -63,12 +63,35 @@ async def create_product(
 ):
     """
     Crear un nuevo producto o servicio para la empresa del usuario.
-    
+
     Verifica que la empresa pertenezca al usuario antes de crear el producto.
+    Valida el límite de productos según el plan de licencia.
     """
     # Verificar que la empresa pertenece al usuario
     await _get_company_for_user(db, data.company_id, current_user.id)
-    
+
+    # Validar límite de productos según licencia
+    from app.core.utils import get_license_limits
+
+    limits = get_license_limits(current_user)
+    max_products = limits['max_products']
+
+    # Contar productos activos en la empresa
+    result = await db.execute(
+        select(func.count(Product.id)).where(
+            Product.company_id == data.company_id,
+            Product.is_active == True
+        )
+    )
+    current_count = result.scalar() or 0
+
+    if current_count >= max_products:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Límite de productos alcanzado en esta empresa. Tu plan actual permite {max_products} producto(s). "
+                   f"Contacta a soporte para actualizar tu licencia."
+        )
+
     # Verificar que no exista un producto con el mismo código principal en la empresa
     result = await db.execute(
         select(Product).where(

@@ -435,7 +435,17 @@ export function ContaECAdmin({ onBack }: ContaECAdminProps) {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {users.map((u) => (
+                      {users.map((u) => {
+                        // Calcular estado de trial
+                        const now = new Date();
+                        const trialEnd = u.trial_end_date ? new Date(u.trial_end_date) : null;
+                        const licenseEnd = u.license_end_date ? new Date(u.license_end_date) : null;
+                        const isTrialActive = u.is_trial && trialEnd && trialEnd > now;
+                        const isLicenseActive = licenseEnd && licenseEnd > now;
+                        const expiryDate = isTrialActive ? trialEnd : licenseEnd;
+                        const expiryLabel = isTrialActive ? 'Trial' : 'Licencia';
+
+                        return (
                         <TableRow key={u.id}>
                           <TableCell>
                             <div className="flex items-center gap-2">
@@ -449,20 +459,39 @@ export function ContaECAdmin({ onBack }: ContaECAdminProps) {
                             {u.email}
                           </TableCell>
                           <TableCell className="text-xs">
-                            <Badge variant="outline" className="text-xs">{u.license_type || '-'}</Badge>
+                            <div className="flex flex-col gap-1">
+                              <Badge variant="outline" className="text-xs w-fit">{u.license_type || '-'}</Badge>
+                              {u.is_trial && (
+                                <Badge variant={isTrialActive ? 'default' : 'secondary'} className={`text-xs w-fit ${isTrialActive ? 'bg-amber-500' : ''}`}>
+                                  {isTrialActive ? 'Trial Activo' : 'Trial Exp.'}
+                                </Badge>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
-                            <Badge
-                              variant={u.is_active ? 'default' : 'secondary'}
-                              className={u.is_active ? 'bg-primary' : ''}
-                            >
-                              {u.is_active ? 'Activo' : 'Inactivo'}
-                            </Badge>
+                            <div className="flex flex-col gap-1">
+                              <Badge
+                                variant={u.is_active ? 'default' : 'secondary'}
+                                className={u.is_active ? 'bg-primary' : ''}
+                              >
+                                {u.is_active ? 'Activo' : 'Inactivo'}
+                              </Badge>
+                              {expiryDate && (
+                                <span className={`text-xs ${isTrialActive || isLicenseActive ? 'text-emerald-600' : 'text-destructive'}`}>
+                                  {isTrialActive || isLicenseActive ? 'Vigente' : 'Exp.'}
+                                </span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell className="text-xs">
-                            {u.license_end_date
-                              ? new Date(u.license_end_date).toLocaleDateString('es-EC')
-                              : '-'}
+                            {expiryDate ? (
+                              <div className="flex flex-col">
+                                <span>{expiryDate.toLocaleDateString('es-EC')}</span>
+                                <span className="text-muted-foreground text-[10px]">{expiryLabel}</span>
+                              </div>
+                            ) : (
+                              '-'
+                            )}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
@@ -496,7 +525,8 @@ export function ContaECAdmin({ onBack }: ContaECAdminProps) {
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))}
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </ScrollArea>

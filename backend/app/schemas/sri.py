@@ -19,6 +19,107 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+def get_contribuyente_by_codigo(codigo: str) -> ContribuyenteTipo | None:
+    """
+    Obtiene información de un tipo de contribuyente por su código.
+
+    Args:
+        codigo: Código del contribuyente (ej: "OB", "NOB", "RIMPE_EMP")
+
+    Returns:
+        ContribuyenteTipo si existe, None otherwise
+    """
+    for ct in CONTRIBUYENTE_TIPOS:
+        if ct.codigo == codigo:
+            return ct
+    return None
+
+
+def get_regimen_by_codigo(codigo: str) -> RegimenTipo | None:
+    """
+    Obtiene información de un régimen tributario por su código.
+
+    Args:
+        codigo: Código del régimen (ej: "GENERAL", "RIMPE_EMPRENDEDOR")
+
+    Returns:
+        RegimenTipo si existe, None otherwise
+    """
+    for rt in REGIMEN_TIPOS:
+        if rt.codigo == codigo:
+            return rt
+    return None
+
+
+def get_regimen_por_ingresos(ingresos_anuales: Decimal) -> RegimenTipo | None:
+    """
+    Determina el régimen tributario según los ingresos anuales.
+
+    Args:
+        ingresos_anuales: Ingresos brutos anuales en USD
+
+    Returns:
+        Régimen aplicable según el umbral
+    """
+    for regimen in REGIMEN_TIPOS:
+        min_ingresos = regimen.umbral_ingresos_minimo or Decimal("0")
+        max_ingresos = regimen.umbral_ingresos_maximo
+
+        if max_ingresos is None:
+            # Sin límite superior (régimen general)
+            if ingresos_anuales >= min_ingresos:
+                return regimen
+        else:
+            if min_ingresos <= ingresos_anuales <= max_ingresos:
+                return regimen
+
+    # Default: Régimen General si no encuentra coincidencia
+    return get_regimen_by_codigo("GENERAL")
+
+
+def es_contribuyente_especial(codigo: str) -> bool:
+    """Verifica si un tipo de contribuyente es Contribuyente Especial."""
+    return codigo in ("CON_ESP", "CONTRIBUYENTE_ESPECIAL")
+
+
+def es_agente_retencion(codigo: str) -> bool:
+    """Verifica si un tipo de contribuyente es Agente de Retención."""
+    return codigo in ("AG_RET", "AGENTE_RETENCION")
+
+
+def es_rimpe(codigo: str) -> bool:
+    """Verifica si un contribuyente está en régimen RIMPE."""
+    return codigo in ("RIMPE_EMP", "RIMPE_NPC", "RIMPE_EMPRENDEDOR", "RIMPE_NEGOCIO_POPULAR")
+
+
+def requiere_contabilidad(codigo: str) -> bool:
+    """
+    Verifica si un tipo de contribuyente está obligado a llevar contabilidad.
+
+    Args:
+        codigo: Código del contribuyente
+
+    Returns:
+        True si debe llevar contabilidad
+    """
+    # No obligados: NOB, RIMPE Negocio Popular
+    no_obligados = ("NOB", "RIMPE_NPC", "RIMPE_NEGOCIO_POPULAR")
+    return codigo not in no_obligados
+
+
+def requiere_anexo_rimpe(codigo: str) -> bool:
+    """
+    Verifica si un contribuyente debe presentar anexo RIMPE.
+
+    Args:
+        codigo: Código del contribuyente
+
+    Returns:
+        True si debe presentar anexo RIMPE mensual
+    """
+    return codigo == "RIMPE_EMP"
+
+
 # ==========================================
 # Esquemas base de catálogos
 # ==========================================
@@ -401,25 +502,166 @@ ESTADOS_COMPROBANTE: list[EstadoComprobante] = [
     EstadoComprobante(siglas="CON", nombre="Contingencia - Comprobante generado en modo contingencia"),
 ]
 
+class ContribuyenteTipo(BaseModel):
+    """
+    Tipo de contribuyente según clasificación del SRI.
+    Determina las obligaciones tributarias del contribuyente.
+    """
+    codigo: str = Field(..., description="Código del tipo de contribuyente")
+    nombre: str = Field(..., description="Nombre del tipo de contribuyente")
+    descripcion: str = Field(..., description="Descripción detallada del tipo de contribuyente")
+    obligaciones: list[str] = Field(
+        default_factory=list,
+        description="Lista de obligaciones tributarias asociadas",
+    )
+    umbral_ingresos: Decimal | None = Field(
+        None,
+        description="Umbral de ingresos anuales en USD (si aplica)",
+    )
+
+
+class RegimenTipo(BaseModel):
+    """
+    Tipo de régimen tributario según clasificación del SRI.
+    Determina el régimen impositivo aplicable al contribuyente.
+    """
+    codigo: str = Field(..., description="Código del régimen tributario")
+    nombre: str = Field(..., description="Nombre del régimen tributario")
+    descripcion: str = Field(..., description="Descripción detallada del régimen")
+    declaraciones_requeridas: list[str] = Field(
+        default_factory=list,
+        description="Declaraciones que debe presentar",
+    )
+    umbral_ingresos_minimo: Decimal | None = Field(
+        None,
+        description="Umbral mínimo de ingresos anuales en USD",
+    )
+    umbral_ingresos_maximo: Decimal | None = Field(
+        None,
+        description="Umbral máximo de ingresos anuales en USD",
+    )
+
+
+# ==========================================
+# Datos completos de catálogos del SRI
+# ==========================================
+
 # Tipos de Contribuyente
-CONTRIBUYENTE_TIPOS: list[dict] = [
-    {"codigo": "OB", "nombre": "Obligado a llevar contabilidad", "descripcion": "Persona natural o jurídica obligada a llevar contabilidad según el SRI"},
-    {"codigo": "NOB", "nombre": "No obligado a llevar contabilidad", "descripcion": "Persona natural no obligada a llevar contabilidad"},
-    {"codigo": "RIMPE_EMP", "nombre": "RIMPE Emprendedor", "descripcion": "Régimen Simplificado para Emprendedores y Negocios Populares - Emprendedor. Ingresos hasta $300,000 anual. Presenta anexo RIMPE."},
-    {"codigo": "RIMPE_NPC", "nombre": "RIMPE Negocio Popular", "descripcion": "Régimen Simplificado para Negocios Populares. Ingresos hasta $20,000 anual. No presenta anexo RIMPE."},
-    {"codigo": "RIMPE_GEN", "nombre": "Régimen General", "descripcion": "Contribuyente del Régimen General. Sociedades y personas naturales con ingresos superiores a $300,000"},
-    {"codigo": "CON_ESP", "nombre": "Contribuyente Especial", "descripcion": "Contribuyente designado como especial por el SRI mediante resolución"},
-    {"codigo": "AG_RET", "nombre": "Agente de Retención", "descripcion": "Contribuyente designado como agente de retención por el SRI"},
-    {"codigo": "SE_PUBLIC", "nombre": "Sector Público", "descripcion": "Entidades del sector público"},
+CONTRIBUYENTE_TIPOS: list[ContribuyenteTipo] = [
+    ContribuyenteTipo(
+        codigo="OB",
+        nombre="Obligado a llevar contabilidad",
+        descripcion="Persona natural o jurídica obligada a llevar contabilidad según el SRI",
+        obligaciones=["declaracion_iv4a", "declaracion_renta", "anexo_operaciones"],
+        umbral_ingresos=Decimal("300000"),
+    ),
+    ContribuyenteTipo(
+        codigo="NOB",
+        nombre="No obligado a llevar contabilidad",
+        descripcion="Persona natural no obligada a llevar contabilidad",
+        obligaciones=["declaracion_iv4a"],
+        umbral_ingresos=Decimal("20000"),
+    ),
+    ContribuyenteTipo(
+        codigo="RIMPE_EMP",
+        nombre="RIMPE Emprendedor",
+        descripcion="Régimen Simplificado para Emprendedores y Negocios Populares - Emprendedor. Ingresos hasta $300,000 anual. Presenta anexo RIMPE.",
+        obligaciones=["anexo_rimpe_mensual"],
+        umbral_ingresos=Decimal("300000"),
+    ),
+    ContribuyenteTipo(
+        codigo="RIMPE_NPC",
+        nombre="RIMPE Negocio Popular",
+        descripcion="Régimen Simplificado para Negocios Populares. Ingresos hasta $20,000 anual. No presenta anexo RIMPE.",
+        obligaciones=[],
+        umbral_ingresos=Decimal("20000"),
+    ),
+    ContribuyenteTipo(
+        codigo="RIMPE_GEN",
+        nombre="Régimen General",
+        descripcion="Contribuyente del Régimen General. Sociedades y personas naturales con ingresos superiores a $300,000",
+        obligaciones=["declaracion_iv4a", "declaracion_renta", "anexo_operaciones"],
+        umbral_ingresos=None,  # Sin límite superior
+    ),
+    ContribuyenteTipo(
+        codigo="CON_ESP",
+        nombre="Contribuyente Especial",
+        descripcion="Contribuyente designado como especial por el SRI mediante resolución",
+        obligaciones=["declaracion_iv4a", "declaracion_renta", "anexo_operaciones", "informativa_sri"],
+        umbral_ingresos=None,
+    ),
+    ContribuyenteTipo(
+        codigo="AG_RET",
+        nombre="Agente de Retención",
+        descripcion="Contribuyente designado como agente de retención por el SRI",
+        obligaciones=["declaracion_retenciones", "declaracion_iv4a", "declaracion_renta"],
+        umbral_ingresos=None,
+    ),
+    ContribuyenteTipo(
+        codigo="SE_PUBLIC",
+        nombre="Sector Público",
+        descripcion="Entidades del sector público",
+        obligaciones=["declaracion_iv4a", "declaracion_renta"],
+        umbral_ingresos=None,
+    ),
 ]
 
 # Tipos de Régimen
-REGIMEN_TIPOS: list[dict] = [
-    {"codigo": "RIMPE_EMPRENDEDOR", "nombre": "RIMPE Emprendedor", "descripcion": "Ingresos brutos entre $20,001 y $300,000 anuales. Presenta anexo RIMPE mensual."},
-    {"codigo": "RIMPE_NEGOCIO_POPULAR", "nombre": "RIMPE Negocio Popular", "descripcion": "Ingresos brutos hasta $20,000 anuales. Régimen simplificado, no presenta declaración."},
-    {"codigo": "GENERAL", "nombre": "Régimen General", "descripcion": "Sociedades y personas naturales con ingresos superiores a $300,000. Declaración de IVA y Renta."},
-    {"codigo": "RISE", "nombre": "Régimen Simplificado RISE", "descripcion": "Régimen Impositivo Simplificado Ecuatoriano. Cuota fija mensual según actividad."},
-    {"codigo": "CONTRIBUYENTE_ESPECIAL", "nombre": "Contribuyente Especial", "descripcion": "Designado por el SRI. Resolución específica con obligaciones particulares."},
-    {"codigo": "AGENTE_RETENCION", "nombre": "Agente de Retención", "descripcion": "Designado por el SRI como agente de retención de IVA y/o Renta."},
-    {"codigo": "SECTOR_PUBLICO", "nombre": "Sector Público", "descripcion": "Entidades del sector público, organismos del Estado."},
+REGIMEN_TIPOS: list[RegimenTipo] = [
+    RegimenTipo(
+        codigo="RIMPE_EMPRENDEDOR",
+        nombre="RIMPE Emprendedor",
+        descripcion="Ingresos brutos entre $20,001 y $300,000 anuales. Presenta anexo RIMPE mensual.",
+        declaraciones_requeridas=["anexo_rimpe_mensual"],
+        umbral_ingresos_minimo=Decimal("20001"),
+        umbral_ingresos_maximo=Decimal("300000"),
+    ),
+    RegimenTipo(
+        codigo="RIMPE_NEGOCIO_POPULAR",
+        nombre="RIMPE Negocio Popular",
+        descripcion="Ingresos brutos hasta $20,000 anuales. Régimen simplificado, no presenta declaración.",
+        declaraciones_requeridas=[],
+        umbral_ingresos_minimo=Decimal("0"),
+        umbral_ingresos_maximo=Decimal("20000"),
+    ),
+    RegimenTipo(
+        codigo="GENERAL",
+        nombre="Régimen General",
+        descripcion="Sociedades y personas naturales con ingresos superiores a $300,000. Declaración de IVA y Renta.",
+        declaraciones_requeridas=["declaracion_iv4a_mensual", "declaracion_renta_anual"],
+        umbral_ingresos_minimo=Decimal("300001"),
+        umbral_ingresos_maximo=None,
+    ),
+    RegimenTipo(
+        codigo="RISE",
+        nombre="Régimen Simplificado RISE",
+        descripcion="Régimen Impositivo Simplificado Ecuatoriano. Cuota fija mensual según actividad.",
+        declaraciones_requeridas=["pago_cuota_riese_mensual"],
+        umbral_ingresos_minimo=Decimal("0"),
+        umbral_ingresos_maximo=Decimal("60000"),
+    ),
+    RegimenTipo(
+        codigo="CONTRIBUYENTE_ESPECIAL",
+        nombre="Contribuyente Especial",
+        descripcion="Designado por el SRI. Resolución específica con obligaciones particulares.",
+        declaraciones_requeridas=["declaracion_iv4a", "declaracion_renta", "informativa_sri"],
+        umbral_ingresos_minimo=None,
+        umbral_ingresos_maximo=None,
+    ),
+    RegimenTipo(
+        codigo="AGENTE_RETENCION",
+        nombre="Agente de Retención",
+        descripcion="Designado por el SRI como agente de retención de IVA y/o Renta.",
+        declaraciones_requeridas=["declaracion_retenciones", "declaracion_iv4a"],
+        umbral_ingresos_minimo=None,
+        umbral_ingresos_maximo=None,
+    ),
+    RegimenTipo(
+        codigo="SECTOR_PUBLICO",
+        nombre="Sector Público",
+        descripcion="Entidades del sector público, organismos del Estado.",
+        declaraciones_requeridas=["declaracion_iv4a", "declaracion_renta"],
+        umbral_ingresos_minimo=None,
+        umbral_ingresos_maximo=None,
+    ),
 ]

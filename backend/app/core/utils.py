@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.client import Client, TipoIdentificacion
+from app.core.licenses import get_license_limits
 
 logger = logging.getLogger(__name__)
 

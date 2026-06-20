@@ -4,7 +4,7 @@ Agrupa todos los endpoints de la versión 1
 """
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, admin, companies, config, licenses, backup, uploads, comprobantes, products, clients, proformas, audit, email_templates, email_receiver, smtp_profiles, suppliers, purchases, warehouses, ubicaciones, pos, bi, budgets, projects, integrations, ml_ai, accounting, notifications, user_roles, crm, cuentas_pagar, employees, payroll, exports, imports, kardex
+from app.api.v1.endpoints import auth, admin, companies, config, licenses, backup, uploads, comprobantes, products, clients, proformas, audit, email_templates, email_receiver, smtp_profiles, suppliers, purchases, warehouses, ubicaciones, pos, bi, budgets, projects, integrations, ml_ai, accounting, notifications, user_roles, crm, cuentas_pagar, employees, payroll, payroll_reports, payroll_exports, attendance, exports, imports, kardex, volatile, email_logs
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -104,6 +104,15 @@ api_router.include_router(employees.router)
 # Nómina / Rol de Pago
 api_router.include_router(payroll.router)
 
+# Nómina - Reportes SRI (RDEP, Anexos IESS, SUT XIII-XIV, IR)
+api_router.include_router(payroll_reports.router)
+
+# Nómina - Exportaciones (Bancos, PDF/Excel roles)
+api_router.include_router(payroll_exports.router)
+
+# Nómina - Asistencia y Turnos
+api_router.include_router(attendance.router)
+
 # Exportaciones
 api_router.include_router(exports.router)
 
@@ -112,3 +121,9 @@ api_router.include_router(imports.router)
 
 # Kardex
 api_router.include_router(kardex.router)
+
+# Almacenamiento Volátil
+api_router.include_router(volatile.router)
+
+# Logs de Correo
+api_router.include_router(email_logs.router)

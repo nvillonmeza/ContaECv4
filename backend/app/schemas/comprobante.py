@@ -2,11 +2,94 @@
 ContaEC - Esquemas Pydantic de Comprobante Electrónico
 Schemas para creación, actualización y respuesta de comprobantes y detalles
 según la Ficha Técnica v2.32 del SRI (Ecuador)
+
+Estados del comprobante:
+- Internos: borrador, firmado, enviado
+- SRI: autorizado, rechazado, devuelto, caducado, anulado, contingencia
 """
 from datetime import datetime
 from decimal import Decimal
+from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+
+# ==========================================
+# Estados del Comprobante
+# ==========================================
+
+class ComprobanteEstadoEnum(str, Enum):
+    """
+    Estados posibles del comprobante electrónico.
+    Combina estados internos y estados del SRI.
+    """
+    # Estados internos (pre-envío)
+    BORRADOR = "borrador"           # Borrador - aún no procesado
+    FIRMADO = "firmado"             # Firmado digitalmente, pendiente de envío
+    ENVIADO = "enviado"             # Enviado al SRI, pendiente respuesta
+
+    # Estados SRI
+    AUTORIZADO = "autorizado"       # Autorizado por el SRI
+    RECHAZADO = "rechazado"         # Rechazado por el SRI
+    DEVUELTO = "devuelto"           # Devuelto por el SRI para corrección
+    CADUCADO = "caducado"           # Caducado (excedió tiempo de autorización)
+    ANULADO = "anulado"             # Anulado por el emisor
+    CONTINGENCIA = "contingencia"   # Generado en modo contingencia
+
+    # Equivalentes SRI (siglas)
+    PPR = "ppr"                     # En procesamiento (SRI)
+    NAT = "nat"                     # No autorizado (SRI)
+
+
+def estado_to_sigla(estado: str) -> str:
+    """
+    Convierte un estado a su sigla SRI equivalente.
+
+    Args:
+        estado: Estado del comprobante (ej: "autorizado", "borrador")
+
+    Returns:
+        Sigla SRI (ej: "AUT", "PPR") o None si no tiene equivalente
+    """
+    mapeo = {
+        "borrador": None,           # No tiene equivalente SRI
+        "firmado": None,            # No tiene equivalente SRI
+        "enviado": "PPR",           # En procesamiento
+        "autorizado": "AUT",
+        "rechazado": "NAT",
+        "devuelto": "DEV",
+        "devuelta": "DEV",
+        "caducado": "CAD",
+        "caducada": "CAD",
+        "anulado": "ANU",
+        "anulada": "ANU",
+        "contingencia": "CON",
+        "ppr": "PPR",
+        "nat": "NAT",
+    }
+    return mapeo.get(estado.lower())
+
+
+def sigla_to_estado(sigla: str) -> str:
+    """
+    Convierte una sigla SRI a estado interno.
+
+    Args:
+        sigla: Sigla SRI (ej: "AUT", "PPR")
+
+    Returns:
+        Estado interno (ej: "autorizado", "ppr")
+    """
+    mapeo = {
+        "PPR": "enviado",
+        "AUT": "autorizado",
+        "NAT": "rechazado",
+        "DEV": "devuelto",
+        "CAD": "caducado",
+        "ANU": "anulado",
+        "CON": "contingencia",
+    }
+    return mapeo.get(sigla, sigla.lower())
 
 
 # ==========================================
@@ -61,17 +144,17 @@ class ComprobanteDetalleCreate(BaseModel):
         description="Monto de descuento aplicado al detalle",
     )
     iva_codigo: str = Field(
-        ...,
+        default="4",
         min_length=1,
         max_length=2,
-        description="Código de tarifa de IVA según Tabla 16 del SRI (ej: 10 para 13%)",
-        examples=["10"],
+        description="Código de tarifa de IVA según Tabla 16 del SRI (4=15% default, 10=13%, 2=12%, etc)",
+        examples=["4"],
     )
     iva_porcentaje: Decimal = Field(
-        ...,
+        default=Decimal("15.00"),
         ge=0,
-        description="Porcentaje de IVA (0, 5, 8, 12, 13, 14, 15)",
-        examples=["13.00"],
+        description="Porcentaje de IVA (default 15%, también: 0, 5, 8, 12, 13, 14)",
+        examples=["15.00"],
     )
     ice_codigo: str | None = Field(
         None,

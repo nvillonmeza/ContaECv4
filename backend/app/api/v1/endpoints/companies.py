@@ -7,9 +7,10 @@ import os
 import uuid
 from uuid import UUID
 from pathlib import Path
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, status
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -41,6 +42,28 @@ async def create_company(
     db: AsyncSession = Depends(get_db),
 ):
     """Crear una nueva empresa para el usuario actual"""
+    # Verificar límite de empresas según licencia
+    from app.core.utils import get_license_limits
+
+    limits = get_license_limits(current_user)
+    max_companies = limits['max_companies']
+
+    # Contar empresas existentes del usuario
+    result = await db.execute(
+        select(func.count(Company.id)).where(
+            Company.user_id == current_user.id,
+            Company.is_active == True
+        )
+    )
+    current_count = result.scalar() or 0
+
+    if current_count >= max_companies:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Límite de empresas alcanzado. Tu plan actual permite {max_companies} empresa(s). "
+                   f"Contacta a soporte para actualizar tu licencia."
+        )
+
     # Verificar que el RUC no exista ya para este usuario
     result = await db.execute(
         select(Company).where(
@@ -394,4 +417,115 @@ async def upload_company_file(
         "file_path": relative_path,
         "filename": filename,
         "upload_type": upload_type,
+    }
+
+
+# ==================== TIPOS DE CONTRIBUYENTE ====================
+
+@router.get("/catalogos/contribuyentes")
+async def listar_tipos_contribuyente():
+    """
+    Obtener catálogo de tipos de contribuyente del SRI.
+
+    Retorna todos los tipos de contribuyente con sus obligaciones
+    tributarias y umbrales de ingresos.
+    """
+    from app.schemas.sri import CONTRIBUYENTE_TIPOS
+    return {
+        "contribuyentes": [
+            {
+                "codigo": ct.codigo,
+                "nombre": ct.nombre,
+                "descripcion": ct.descripcion,
+                "obligaciones": ct.obligaciones,
+                "umbral_ingresos": float(ct.umbral_ingresos) if ct.umbral_ingresos else None,
+            }
+            for ct in CONTRIBUYENTE_TIPOS
+        ],
+    }
+
+
+@router.get("/catalogos/regimenes")
+async def listar_tipos_regimen():
+    """
+    Obtener catálogo de regímenes tributarios del SRI.
+
+    Retorna todos los regímenes con sus umbrales de ingresos
+    y declaraciones requeridas.
+    """
+    from app.schemas.sri import REGIMEN_TIPOS
+    return {
+        "regimenes": [
+            {
+                "codigo": rt.codigo,
+                "nombre": rt.nombre,
+                "descripcion": rt.descripcion,
+                "declaraciones_requeridas": rt.declaraciones_requeridas,
+                "umbral_minimo": float(rt.umbral_ingresos_minimo) if rt.umbral_ingresos_minimo else None,
+                "umbral_maximo": float(rt.umbral_ingresos_maximo) if rt.umbral_ingresos_maximo else None,
+            }
+            for rt in REGIMEN_TIPOS
+        ],
+    }
+
+
+@router.get("/catalogos/regimen/por-ingresos")
+async def obtener_regimen_por_ingresos(
+    ingresos: float = Query(..., description="Ingresos anuales brutos en USD"),
+):
+    """
+    Determinar el régimen tributario aplicable según ingresos anuales.
+
+    Args:
+        ingresos: Ingresos brutos anuales en dólares
+
+    Returns:
+        Régimen tributario aplicable con sus detalles
+    """
+    from decimal import Decimal
+    from app.schemas.sri import get_regimen_por_ingresos
+
+    regimen = get_regimen_por_ingresos(Decimal(str(ingresos)))
+
+    if not regimen:
+        raise HTTPException(
+            status_code=400,
+            detail="No se pudo determinar el régimen tributario",
+        )
+
+    return {
+        "codigo": regimen.codigo,
+        "nombre": regimen.nombre,
+        "descripcion": regimen.descripcion,
+        "declaraciones_requeridas": regimen.declaraciones_requeridas,
+        "umbral_minimo": float(regimen.umbral_ingresos_minimo) if regimen.umbral_ingresos_minimo else None,
+        "umbral_maximo": float(regimen.umbral_ingresos_maximo) if regimen.umbral_ingresos_maximo else None,
+    }
+
+
+@router.get("/catalogos/contribuyente/{codigo}")
+async def obtener_contribuyente_por_codigo(codigo: str):
+    """
+    Obtener información de un tipo de contribuyente por su código.
+
+    Códigos válidos: OB, NOB, RIMPE_EMP, RIMPE_NPC, RIMPE_GEN, CON_ESP, AG_RET, SE_PUBLIC
+    """
+    from app.schemas.sri import get_contribuyente_by_codigo
+
+    contribuyente = get_contribuyente_by_codigo(codigo)
+
+    if not contribuyente:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Tipo de contribuyente '{codigo}' no encontrado",
+        )
+
+    return {
+        "codigo": contribuyente.codigo,
+        "nombre": contribuyente.nombre,
+        "descripcion": contribuyente.descripcion,
+        "obligaciones": contribuyente.obligaciones,
+        "umbral_ingresos": float(contribuyente.umbral_ingresos) if contribuyente.umbral_ingresos else None,
+        "requiere_contabilidad": contribuyente.codigo not in ("NOB", "RIMPE_NPC"),
+        "es_rimpe": contribuyente.codigo.startswith("RIMPE"),
     }

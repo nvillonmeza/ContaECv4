@@ -24,6 +24,8 @@
    - [4.8 Configuración del Archivo .env](#48-configuración-del-archivo-env)
    - [4.9 Configuración de Caddy (Proxy Reverso)](#49-configuración-de-caddy-proxy-reverso)
    - [4.10 Instalación de ClamAV](#410-instalación-de-clamav)
+   - [4.11 Integración de Email Templates en Frontend](#411-integración-de-email-templates-en-frontend)
+   - [4.12 Creacion de symlink](#412-creacion-de-symlink)
 5. [Estructura del Proyecto](#estructura-del-proyecto)
 6. [Módulos y Funcionalidades](#módulos-y-funcionalidades)
 7. [Variables de Entorno (.env)](#variables-de-entorno-env)
@@ -565,7 +567,31 @@ sudo systemctl status clamav-freshclam
 # LocalSocket /var/run/clamav/clamd.ctl
 ```
 
-### 4.11 Creacion de symlink
+### 4.11 Integración de Email Templates en Frontend
+
+El sistema incluye un editor visual de plantillas de correo en `src/components/email-template-editor.tsx`.
+
+**Características del editor:**
+- Lista de plantillas con filtro por tipo (factura, nota_credito, proforma, general)
+- Formulario modal para crear/editar plantillas
+- Insertador de variables dinámicas (click para insertar `{{variable}}`)
+- Vista previa con datos de ejemplo
+- Activación/desactivación de plantillas
+- Selección de plantilla por defecto por tipo
+
+**Variables disponibles:**
+`{{razon_social}}`, `{{ruc}}`, `{{cliente_nombre}}`, `{{cliente_cedula}}`, `{{secuencial}}`, `{{clave_acceso}}`, `{{fecha_emision}}`, `{{subtotal}}`, `{{iva}}`, `{{total}}`, `{{numero_autorizacion}}`
+
+**Uso en la aplicación:**
+Importar el componente en la página de configuración de email:
+```tsx
+import { EmailTemplateEditor } from '@/components/email-template-editor';
+
+// En tu página
+<EmailTemplateEditor companyId={companyId} />
+```
+
+### 4.12 Creacion de symlink
 ```bash
 ln -sf /opt/contaec/backend/uploads /opt/contaec/public/uploads
 ls -la /opt/contaec/public/
@@ -846,12 +872,29 @@ ContaECv4/
 
 ## Módulos y Funcionalidades
 
-### Fase 1: Infraestructura ✅
+### Fase 0: Infraestructura Base ✅ COMPLETA (7/7 pasos)
+
+| Paso | Funcionalidad | Archivos Principales | Endpoints |
+|------|---------------|---------------------|-----------|
+| **0.1** | Almacenamiento volátil con cleanup automático | `core/cleanup.py`, `core/volatile_storage.py` | `POST /api/v1/volatile/cleanup`, `GET /api/v1/volatile/status` |
+| **0.2** | Catálogos SRI (IVA, ICE, Retenciones) | `schemas/sri.py` | `GET /api/v1/comprobantes/catalogos` |
+| **0.3** | Estados de comprobante electrónico (9 estados) | `models/comprobante.py`, `schemas/comprobante.py` | `GET /api/v1/comprobantes/estados` |
+| **0.4** | Tipos de contribuyente y regímenes (8 tipos) | `schemas/sri.py` | `GET /api/v1/companies/catalogos/contribuyentes` |
+| **0.5** | Integración ClamAV + VirusTotal | `core/scanner.py` | `GET /api/v1/config/clamav-status` |
+| **0.6** | Alertas de licenciamiento + Panel Admin | `api/v1/endpoints/admin.py`, `licenses.py` | `GET /api/v1/admin/dashboard`, `/system-health`, `/licenses/check-expiry` |
+| **0.7** | Backup automático + Email Templates + Sandbox Mode | `api/v1/endpoints/backup.py`, `email_templates.py`, `config.py` | `POST /api/v1/backup/create`, `/email-templates`, `/config/environment-mode` |
+
+**Características técnicas:**
 - FastAPI (Python 3.12) + Next.js 16 (React 19)
 - PostgreSQL (bloqueado en producción, SQLite solo desarrollo)
 - Caddy proxy reverso con SSL Let's Encrypt
+- 30+ endpoints añadidos en Fase 0
+- 4 tipos de licencia: Mensual ($15), Trimestral ($40), Semestral ($75), Anual ($130)
+- IVA 15% default (9 códigos: 0%, 5%, 8%, 12%, 13%, 14%, 15%, No objeto, Exento)
+- ICE: 24 códigos de productos gravados
+- Retenciones: 8 tasas (0%, 10%, 20%, 30%, 50%, 70%, 100%)
 
-### Fase 2: Auth, Multiempresa, Admin, Licencias, ClamAV ✅
+### Fase 1: Auth, Multiempresa, Admin, Licencias, ClamAV ✅
 - JWT con revocación (blacklist) y rotación de refresh tokens
 - Multi-empresa con roles granulares por empresa (UserCompanyRole)
 - Panel admin con dashboard, salud del sistema, gestión de usuarios
@@ -863,7 +906,7 @@ ContaECv4/
 - Sanitización de entradas (SQL injection + XSS)
 - Headers de seguridad (CSP, X-Frame-Options, etc.)
 
-### Fase 3: Facturación Electrónica SRI ✅
+### Fase 2: Facturación Electrónica SRI ✅
 - 10 tarifas IVA: 0%, 5%, 8%, 12%, 13%, 14%, 15% (default), No objeto, Exento, Diferenciado
 - 34 tarifas ICE con ad valorem + específica
 - Retenciones IVA (10%, 20%, 30%, 50%, 70%, 100%, 0%) y Renta (28 códigos)
@@ -880,7 +923,7 @@ ContaECv4/
 - Envío por email de comprobantes autorizados
 - Procesar (1-click: firmar + enviar + consultar)
 
-### Fase 4: Inventario y Kardex ✅
+### Fase 3: Inventario y Kardex ✅
 - Control de productos con stock, stock mínimo, código de barras
 - Kardex con saldos corridos (saldo_cantidad, saldo_valor)
 - Métodos de valoración: FIFO, LIFO, Promedio Ponderado
@@ -889,22 +932,57 @@ ContaECv4/
 - Exportación a Excel, CSV, PDF, ZIP
 - Almacenamiento volátil con auto-limpieza
 
-### Fase 5: Nómina RRHH ✅
-- Registro de empleados (datos personales, contrato, cargo, salario)
-- Cargas familiares
-- Evaluaciones de desempeño
-- Asistencia con soporte biométrico
-- Roles de pago (quincenal/mensual) con IESS 9.45%/11.15%
-- Décimo tercero (mensualizado/anual) y décimo cuarto (sierra/costa)
-- Vacaciones y fondo de reserva
-- Utilidades (15% participación trabajadores)
-- Liquidaciones laborales (finiquito/despido/renuncia)
-- Impuesto a la Renta progresivo (tabla SRI 2024)
-- Rubros personalizables (bonos, comisiones, anticipos, préstamos)
-- Reportes: IESS, RDEP, roles de pago
-- Exportación Excel y CSV para pago bancario
+### Fase 4: Nómina RRHH Completa ✅ IMPLEMENTADA (5/5 subfases)
 
-### Fase 6: Frontend ✅
+| Subfase | Descripción | Modelos/Archivos | Endpoints Nuevos |
+|---------|-------------|------------------|------------------|
+| **1.1** | Modelos RRHH Extendidos | `hr_contract.py`, `hr_vacation.py`, `hr_loan.py`, `hr_history.py`, `hr_shift.py` | - |
+| **1.2** | Cálculos Automáticos | `payroll_calculations.py`, `ir_calculation.py` | - |
+| **1.3** | Reportes SRI Nómina | `payroll_reports.py` | `/rdep/xml`, `/rdep`, `/anexos-iess`, `/sut-xiii-xiv`, `/ir-retenciones` |
+| **1.4** | Exportaciones Bancarias | `payroll_exports.py` | `/banco/pichincha`, `/banco/guayaquil`, `/banco/pacifico`, `/csv`, `/rol-pago/pdf`, `/excel` |
+| **1.5** | Integración Asistencia | `attendance.py` | `/attendance/registro`, `/import/biometrico`, `/turnos/asignar`, `/resumen`, `/faltas` |
+
+**Modelos creados (10 nuevos):**
+- `Contrato` (Contrato laboral histórico): tipo_contrato, cargo, fecha_inicio, sueldo_base, estado
+- `VacacionesPeriodo`: dias_correspondientes (15 + adicionales), dias_tomados, dias_pendientes
+- `VacacionesSolicitud`: fecha_inicio, fecha_fin, estado, aprobacion
+- `VacacionesHistorial`: registro histórico de vacaciones tomadas
+- `PrestamoEmpleado`: monto_solicitado, numero_cuotas, saldo_pendiente, descuento_porcentaje (max 30%)
+- `PrestamoDetalle`: registro de cuotas con fecha programada y pagada
+- `HistorialLaboral`: tipo_movimiento (ingreso, ascenso, descenso, cambio_salarial, etc.)
+- `TurnoRotativo`: tipo_turno (dia, tarde, noche), hora_entrada, hora_salida, porcentaje_recargo
+- `TurnoAsignacion`: fecha_asignacion, horas_trabajadas, horas_extras, estado
+
+**Cálculos automáticos implementados:**
+- Décimo Tercero: 1/12 sueldo por mes (Art. 95, pago máximo 24 diciembre)
+- Décimo Cuarto: 1/12 SBU ($460/12) (Art. 97, pago: agosto Sierra / marzo Costa)
+- Fondo de Reserva: 8.33% del sueldo (requiere 1+ año servicio)
+- Vacaciones: 15 días por año + 1 adicional, valor = sueldo_diario × días
+- Horas Extras: 25% diurnas, 50% nocturnas (22:00-06:00), 100% dominicales
+- Aportes IESS: 9.35% personal, 11.15% + 0.5% riesgos + 0.2% SECAP + 0.1% CENACES = 12.95% patronal
+- Utilidades: 15% para trabajadores (50% días trabajo + 50% sueldos/salarios)
+- Liquidación Laboral: sueldo pendiente + décimos + vacaciones + fondo reserva
+- Impuesto Renta: tabla progresiva 2024-2026 (9 tramos, 0%-35%)
+
+**Reportes SRI:**
+- RDEP XML: archivo descargable con estructura SRI para presentación anual
+- Anexos IESS: aportes personales y patronales por empleado
+- SUT XIII-XIV: consolidado de pagos de décimos por tipo y año
+- IR Retenciones: base imponible, tasa y retención por empleado
+
+**Exportaciones bancarias:**
+- Banco Pichincha: CSV (CUENTA,BENEFICIARIO,VALOR,TIPO)
+- Banco Guayaquil: TXT posicional (registro tipo 1 cabecera, tipo 2 detalles)
+- Banco Pacífico: TSV/Excel (TIPO_ID | IDENTIFICACION | NOMBRE | TIPO_CUENTA | NUMERO | VALOR)
+
+**Asistencia biométrica:**
+- Registro de entrada/salida por empleado
+- Importación desde dispositivos biométricos (CSV/JSON)
+- Turnos rotativos con asignación individual o masiva
+
+**Flujo integrado (1-click):** Generar rol de pago + RDEP XML + archivo banco + PDF rol
+
+### Fase 5: Frontend ✅
 - React 19 + Next.js 16 + Tailwind CSS + shadcn/ui
 - Modo claro/oscuro (colores suaves que no cansan la vista)
 - 3 idiomas: Español Ecuador (default), English, Português Brasil
@@ -912,74 +990,318 @@ ContaECv4/
 - 20+ componentes de dominio
 - Responsive (mobile-first)
 
-### Fase 7: SMTP + Sandbox ✅
-- Múltiples perfiles SMTP por usuario (Gmail, Zoho, Office365, Outlook, Yahoo, Custom)
-- IMAP y POP3 para recepción de correo
-- Plantillas de email con variables {{variable}}
-- Modo sandbox (sin envío real al SRI ni correos)
-- Audit logs de operaciones de email
+### Fase 6: SMTP + Sandbox ✅ IMPLEMENTADA
 
-### Fase 8: Compras y Proveedores ✅
-- Catálogo de proveedores
-- Órdenes de compra (auto-numeración OC-000001)
-- Recepción de mercadería (vinculada a OC)
-- Cuentas por pagar (pendiente/parcial/pagada/vencida)
-- Retenciones de compra (IVA + Renta, auto-cálculo RET-000001)
+| Componente | Descripción | Archivos | Endpoints |
+|------------|-------------|----------|-----------|
+| **Perfiles SMTP** | CRUD de perfiles SMTP multi-proveedor | `models/smtp_profile.py`, `schemas/smtp_profile.py` | `POST/GET/PUT/DELETE /api/v1/smtp-profiles`, `POST /api/v1/smtp-profiles/test` |
+| **Plantillas Email** | Plantillas HTML con variables dinámicas | `models/email_template.py`, `schemas/email_template.py`, `api/v1/endpoints/email_templates.py` | `POST/GET/PUT/DELETE /api/v1/email-templates`, `POST /api/v1/email-templates/preview`, `POST /api/v1/email-templates/send` |
+| **Email Logs** | Tracking de envíos con reintentos | `models/email_log.py`, `schemas/email_log.py`, `api/v1/endpoints/email_logs.py` | `GET /api/v1/email-logs`, `GET /api/v1/email-logs/stats`, `POST /api/v1/email-logs/{id}/retry`, `DELETE /api/v1/email-logs/{id}` |
+| **Recepción IMAP** | Recepción de correos vía IMAP/POP3 | `core/email_receiver.py`, `api/v1/endpoints/email_receiver.py` | `POST /api/v1/email-receiver/receive`, `GET /api/v1/email-receiver/status` |
+| **Servicio SMTP** | Envío asíncrono con reconexión | `core/email_service.py` | - |
 
-### Fase 9: Multi-Almacén y Logística ✅
-- Múltiples bodegas con ubicaciones (zona/rack/estante/nivel)
-- Transferencias entre almacenes (pendiente→en tránsito→recibida→anulada)
-- Kardex detallado por almacén
-- Stock por ubicación física
+**Modelos de datos:**
+- `SMTPProfile`: provider_type (gmail, zoho, office365, outlook, yahoo, custom), host, port, username, password (cifrado), protocol (SSL/TLS/STARTTLS), signature_id
+- `EmailTemplate`: nombre, tipo (factura, nota_credito, proforma, general), asunto, cuerpo_html, cuerpo_texto, is_default, is_active
+- `EmailLog`: tipo (comprobante, proforma, notificacion), destinatario_principal, estado (pendiente, enviado, fallido, reintentando, cancelado), intentos, max_intentos, respuesta_smtp, error_mensaje, comprobante_id
 
-### Fase 10: Punto de Venta (POS) ✅
-- Terminal táctil con búsqueda por código de barras
-- Sesiones de caja (apertura/cierre)
-- Arqueo de caja con desglose de denominaciones
-- Tickets con múltiples formas de pago
-- Anulación de tickets
+**Características:**
+- Variables en plantillas: `{{razon_social}}`, `{{ruc}}`, `{{cliente_nombre}}`, `{{secuencial}}`, `{{total}}`, etc.
+- Reintentos automáticos con backoff exponencial (max 3 intentos, configurable)
+- Estadísticas de envío: tasa de éxito, breakdown por tipo, tendencia diaria
+- Test de conexión SMTP antes de guardar
+- Vista previa de plantillas con datos de ejemplo
+- Envío de comprobantes con adjuntos (XML + RIDE PDF)
 
-### Fase 11: Business Intelligence ✅
-- 16 KPIs en tiempo real
-- Gráficos: ventas mensuales, por tipo, top productos/clientes, flujo efectivo
-- 8 tipos de alertas inteligentes
-- Cuadro de mando con indicadores de cumplimiento
-- Exportación Power BI (star schema JSON)
+### Fase 7: Compras y Proveedores ✅ IMPLEMENTADA
 
-### Fase 12: Presupuestos ✅
-- Presupuesto anual por cuenta (ingresos/egresos)
-- Ejecución mensual con porcentaje de avance
-- Alertas de sobregiro (50%, 75%, 90%, 100%)
-- Comparativo presupuestado vs real
+| Componente | Descripción | Archivos | Endpoints |
+|------------|-------------|----------|-----------|
+| **Órdenes de Compra** | CRUD de OC con flujo de aprobación | `models/purchase.py` (OrdenCompra, OrdenCompraDetalle), `schemas/purchase.py`, `api/v1/endpoints/purchases.py` | `POST/GET/PUT/DELETE /api/v1/purchases/ordenes` |
+| **Recepción de Mercadería** | Registro de recepciones vinculadas a OC | `models/purchase.py` (RecepcionMercaderia, RecepcionMercaderiaDetalle), `schemas/purchase.py` | `POST/GET/PUT/DELETE /api/v1/purchases/recepciones` |
+| **Cuentas por Pagar** | Gestión de pagos a proveedores | `models/purchase.py` (CuentaPorPagar), `schemas/purchase.py`, `api/v1/endpoints/cuentas_pagar.py` | `POST/GET/PUT/DELETE /api/v1/purchases/cuentas-por-pagar`, `POST /api/v1/purchases/cuentas-por-pagar/{id}/payment` |
+| **Retenciones de Compra** | Generación automática de retenciones | `models/purchase.py` (RetencionCompra), `schemas/purchase.py` | `POST/GET/PUT/DELETE /api/v1/purchases/retenciones` |
+| **Proveedores** | Catálogo de proveedores | `models/supplier.py`, `schemas/supplier.py`, `api/v1/endpoints/suppliers.py` | `POST/GET/PUT/DELETE /api/v1/suppliers` |
 
-### Fase 13: CRM ✅
-- Pipeline visual con etapas personalizables
-- Gestión de leads (nuevo→contactado→cualificado→propuesta→ganado/perdido)
-- Conversión de lead a oportunidad
-- Oportunidades con monto estimado, probabilidad, fecha de cierre
-- Actividades (llamada/email/reunión/tarea/nota)
-- Segmentación de clientes (manual/regla/RFM)
-- Automatizaciones (triggers + actions)
+**Modelos de datos:**
+- `OrdenCompra`: numero (OC-000001), fecha_emision, fecha_entrega_estimada, estado (borrador, enviada, parcial, recibida, anulada), subtotal_sin_impuestos, total_iva, total_con_impuestos
+- `OrdenCompraDetalle`: product_id, codigo_principal, descripcion, cantidad, cantidad_recibida, precio_unitario, iva_codigo, iva_porcentaje, descuento
+- `RecepcionMercaderia`: numero (RM-000001), fecha_recepcion, estado (pendiente, conformada, rechazada), orden_compra_id (opcional)
+- `RecepcionMercaderiaDetalle`: product_id, cantidad_recibida, cantidad_dañada, precio_unitario
+- `CuentaPorPagar`: numero_factura, fecha_emision, fecha_vencimiento, monto_total, monto_pagado, monto_pendiente, estado (pendiente, parcial, pagada, vencida), dias_credito
+- `RetencionCompra`: numero_retencion (RET-000001), base_imponible_iva, retencion_iva_codigo/porcentaje/valor, base_imponible_renta, retencion_renta_codigo/porcentaje/valor
 
-### Fase 14: Proyectos y Servicios ✅
-- Gestión de proyectos con estados (planificación→en progreso→completado)
-- Asignación de recursos (humano/material/equipo)
-- Timesheets con tarifa/hora y facturable/no facturable
-- Rentabilidad por proyecto (ingreso - costo = margen)
-- Recálculo automático de márgenes
+**Características:**
+- Auto-numeración de órdenes de compra (OC-000001), recepciones (RM-000001), retenciones (RET-000001)
+- Flujo de recepción vinculado a orden de compra (actualiza cantidad_recibida en OC)
+- Cuentas por pagar con cálculo automático de fecha de vencimiento (días de crédito)
+- Registro de pagos parciales con actualización de estado (pendiente → parcial → pagada)
+- Retenciones de IVA y Renta con códigos SRI (Tablas 19 y 20)
+- Auditoría de todas las operaciones (logs de creación, actualización, eliminación)
+- Frontend: componente `contaec-purchases.tsx` con pestañas para OC, CxP, Retenciones
 
-### Fase 15: Integraciones ✅
-- Cuentas bancarias con extractos y movimientos
-- Conciliación bancaria manual y automática
-- Conectores e-commerce: Shopify, WooCommerce, OpenCart, PrestaShop, Magento, Mercado Libre
-- Logs de sincronización con métricas
+### Fase 8: Multi-Almacén y Logística ✅ IMPLEMENTADA
 
-### Fase 16: Machine Learning / IA ✅
-- Predicción de ventas (Moving Average, Exponential Smoothing, Linear Regression)
-- Detección de fraude (Z-score, duplicados, secuencia anómala, validación RUC)
-- Chatbot híbrido (reglas + LLM via z-ai CLI)
-- Recomendaciones (producto, cliente, precio, inventario, financiera)
-- Auto-categorización (keywords + regex)
+| Componente | Descripción | Archivos | Endpoints |
+|------------|-------------|----------|-----------|
+| **Almacenes** | CRUD de almacenes/bodegas | `models/warehouse.py` (Warehouse), `schemas/warehouse.py`, `api/v1/endpoints/warehouses.py` | `POST/GET/PUT/DELETE /api/v1/warehouses` |
+| **Ubicaciones Físicas** | Gestión de zona/pasillo/rack/estante/nivel | `models/warehouse.py` (WarehouseLocation), `schemas/warehouse.py`, `api/v1/endpoints/ubicaciones.py` | `POST/GET/PUT/DELETE /api/v1/ubicaciones`, `GET /api/v1/ubicaciones/map` |
+| **Transferencias** | Transferencias entre almacenes | `models/warehouse.py` (WarehouseTransfer, WarehouseTransferDetalle), `schemas/warehouse.py`, `api/v1/endpoints/warehouses.py` | `POST/GET/PUT /api/v1/warehouses/transfers` |
+| **Kardex Detallado** | Movimientos con saldo por almacén | `models/kardex.py`, `schemas/kardex.py`, `api/v1/endpoints/kardex.py` | `POST/GET /api/v1/kardex`, `GET /api/v1/kardex/reporte`, `GET /api/v1/kardex/saldos` |
+
+**Modelos de datos:**
+- `Warehouse`: nombre, codigo, direccion, ciudad, responsable, telefono, is_principal (solo uno por empresa)
+- `WarehouseLocation`: zona, pasillo, rack, estante, nivel, codigo_ubicacion (auto-generado: A-P3-RB-E2), ubicacion_completa, capacidad_maxima, capacidad_actual, producto_id
+- `WarehouseTransfer`: numero (TRANS-000001), warehouse_origen_id, warehouse_destino_id, estado (pendiente, en_transito, recibida, anulada), fecha_envio, fecha_recepcion
+- `WarehouseTransferDetalle`: product_id, cantidad, cantidad_recibida, observaciones
+- `Kardex`: product_id, warehouse_id, tipo_movimiento (entrada, salida, ajuste, transferencia), cantidad, costo_unitario, saldo_cantidad, saldo_valor
+
+**Características:**
+- Múltiples almacenes por empresa con uno principal
+- Ubicaciones físicas con direccionamiento jerárquico (zona-pasillo-rack-estante-nivel)
+- Códigos cortos de ubicación auto-generados (ej: A-P3-RB-E2)
+- Control de capacidad máxima y actual por ubicación
+- Transferencias con flujo de estados: pendiente → en_transito → recibida
+- Kardex con saldo en tiempo real (cantidad y valor) por producto/almacén
+- Reportes de kardex por fechas con métodos FIFO/LIFO/PP
+- Auditoría completa de movimientos
+- Frontend: componente `contaec-warehouses.tsx`
+
+### Fase 9: Punto de Venta (POS) ✅ IMPLEMENTADA
+
+| Componente | Descripción | Archivos | Endpoints |
+|------------|-------------|----------|-----------|
+| **Interfaz Táctil** | Terminal POS con botones grandes | `src/components/contaec-pos.tsx` | - |
+| **Escáner** | Búsqueda por código de barras | `backend/app/api/v1/endpoints/pos.py`, `src/lib/api.ts` | `GET /api/v1/pos/products/barcode/:barcode` |
+| **Tickets** | Venta con impresión 80mm | `models/pos.py`, `schemas/pos.py`, `api/v1/endpoints/pos.py` | `POST/GET /api/v1/pos/tickets`, `GET /api/v1/pos/tickets/:id/print` |
+| **Arqueo** | Apertura/cierre de caja | `models/pos.py`, `schemas/pos.py`, `api/v1/endpoints/pos.py` | `POST/GET /api/v1/pos/sessions`, `POST /api/v1/pos/sessions/:id/close` |
+| **Facturación Rápida** | Flujo retail optimizado | `src/components/contaec-pos.tsx`, `src/lib/api.ts` | `POST /api/v1/pos/tickets` |
+
+**Modelos de datos:**
+- `POSCashSession`: numero_caja, user_id, estado (abierta, cerrada), fecha_apertura, fecha_cierre, monto_apertura, monto_cierre_efectivo, monto_cierre_calculado, monto_diferencia, total_ventas_* (por forma de pago)
+- `POSTicket`: numero (TICKET-000001), session_id, warehouse_id, tipo_venta (efectivo, tarjeta, credito, mixto), subtotal, iva, total, estado (pendiente, pagado, anulado, devuelto)
+- `POSTicketDetalle`: product_id, cantidad, precio_unitario, descuento, total
+- `POSArqueo`: session_id, tipo (parcial, final), monto_efectivo, monto_tarjeta, monto_credito, monto_cheque, diferencia, observaciones
+
+**Características:**
+- Sesiones de caja con control de apertura/cierre
+- Búsqueda de productos por código de barras (escáner)
+- Múltiples formas de pago: efectivo, tarjeta, crédito, mixto
+- Impresión de tickets formato 80mm (PDF)
+- Arqueo de caja con conteo de denominaciones
+- Cálculo automático de sobrante/faltante
+- Control de stock por almacén
+- Devoluciones y anulaciones
+- Auditoría completa de operaciones
+- Frontend: componente `contaec-pos.tsx` con interfaz táctil, carrito, búsquedas y cierre de caja
+
+### Fase 10: Business Intelligence ✅ IMPLEMENTADA
+
+| Componente | Descripción | Archivos | Endpoints |
+|------------|-------------|----------|-----------|
+| **KPIs Tiempo Real** | 16 indicadores clave | `api/v1/endpoints/bi.py`, `schemas/bi.py` | `GET /api/v1/bi/kpis` |
+| **Dashboards** | Gráficos Recharts | `src/components/contaec-bi.tsx`, `schemas/bi.py` | `GET /api/v1/bi/ventas-mensuales`, `/bi/ventas-por-tipo`, `/bi/top-productos`, `/bi/top-clientes`, `/bi/flujo-efectivo` |
+| **Alertas** | Stock bajo, vencimientos, cumplimiento | `api/v1/endpoints/bi.py`, `schemas/bi.py` | `GET /api/v1/bi/alertas` |
+| **Cuadro de Mando** | Indicadores de cumplimiento | `api/v1/endpoints/bi.py`, `schemas/bi.py` | `GET /api/v1/bi/cuadro-mando` |
+| **Exportar Power BI** | Star schema JSON | `api/v1/endpoints/bi.py`, `schemas/bi.py` | `GET /api/v1/bi/export-powerbi`, `POST /api/v1/bi/export-powerbi-file` |
+
+**KPIs implementados:**
+1. Ventas totales (mensuales, variación % vs mes anterior)
+2. Comprobantes emitidos/autorizados/rechazados
+3. Tasa de aprobación SRI (%)
+4. Ticket promedio
+5. IVA recaudado
+6. Clientes activos/nuevos
+7. Productos más vendidos
+8. Ventas por tipo de comprobante
+9. Flujo de efectivo mensual
+10. Cuentas por cobrar (total, vencidas, próximas)
+11. Cuentas por pagar (total, vencidas, próximas)
+12. Stock de productos
+13. Órdenes de compra pendientes
+14. Empleados activos
+15. Roles de pago procesados
+16. Tickets POS (cantidad, total)
+
+**Alertas inteligentes:**
+- Stock bajo (productos con stock < mínimo)
+- Cuentas por cobrar vencidas
+- Cuentas por pagar próximas a vencer
+- Comprobantes rechazados SRI
+- Sesiones POS con diferencias de efectivo
+- Licencias por expirar
+- Respaldos pendientes
+- Productos sin movimiento
+
+**Exportación Power BI:**
+- FactVentaRow: tabla de hechos de ventas
+- FactInventarioRow: tabla de hechos de inventario
+- DimProducto: dimensión de productos
+- DimCliente: dimensión de clientes
+- DimTiempo: dimensión temporal
+- Formato star schema listo para importar
+
+**Frontend:** `contaec-bi.tsx` con gráficos de barras, líneas, tortas y tablas de KPIs
+
+### Fase 11: Presupuestos ✅ IMPLEMENTADA
+
+| Componente | Descripción | Archivos | Endpoints |
+|------------|-------------|----------|-----------|
+| **Presupuesto Anual** | CRUD de presupuestos por ejercicio fiscal | `models/budget.py`, `schemas/budget.py`, `api/v1/endpoints/budgets.py` | `POST/GET/PUT/DELETE /api/v1/budgets` |
+| **Cuentas Presupuestarias** | Presupuesto por cuenta contable (ingreso/egreso) | `models/budget.py`, `schemas/budget.py`, `api/v1/endpoints/budgets.py` | `POST/GET/PUT/DELETE /api/v1/budgets/cuentas` |
+| **Ejecución Mensual** | Registro de ejecución presupuestaria mensual | `models/budget.py`, `schemas/budget.py`, `api/v1/endpoints/budgets.py` | `POST/GET/PUT /api/v1/budgets/ejecuciones` |
+| **Alertas de Sobregiro** | Notificaciones automáticas por阈值 | `models/budget.py`, `api/v1/endpoints/budgets.py` | `GET /api/v1/budgets/alertas`, `GET /api/v1/budgets/alertas/summary` |
+| **Comparativo** | Presupuestado vs real | `api/v1/endpoints/budgets.py`, `schemas/budget.py` | `GET /api/v1/budgets/comparativo`, `GET /api/v1/budgets/stats` |
+
+**Modelos de datos:**
+- `PresupuestoAnual`: anio, nombre, descripcion, estado (borrador, aprobado, cerrado, anulado), total_ingresos_presupuestado, total_egresos_presupuestado, total_ingresos_ejecutado, total_egresos_ejecutado
+- `PresupuestoCuenta`: cuenta_codigo, cuenta_nombre, cuenta_tipo (ingreso/egreso), monto_anual, monto_ejecutado, monto_disponible, porcentaje_ejecucion
+- `PresupuestoEjecucionMensual`: mes, monto_ejecutado, observaciones
+- `PresupuestoAlerta`: tipo_alerta (50_porciento, 75_porciento, 90_porciento, sobregiro), mensaje, monto_presupuestado, monto_ejecutado, monto_sobregiro, porcentaje_ejecucion, is_leida, is_resuelta
+
+**Características:**
+- Presupuestos anuales por ejercicio fiscal con estado (borrador → aprobado → cerrado)
+- Cuentas presupuestarias por tipo: ingreso y egreso
+- Ejecución mensual con registro de montos ejecutados
+- Cálculo automático de porcentaje de ejecución
+- Alertas automáticas porthresholds: 50%, 75%, 90%, sobregiro (>100%)
+- Alertas marcables como leídas/resueltas
+- Recálculo automático de totales (cuenta → presupuesto anual)
+- Comparativo presupuestado vs ejecutado
+- Exportación de presupuestos (JSON/Excel)
+- Auditoría completa de operaciones
+- Frontend: componente `contaec-budgets.tsx`
+
+### Fase 12: CRM ✅ IMPLEMENTADA
+
+| Componente | Descripción | Archivos | Endpoints |
+|------------|-------------|----------|-----------|
+| **Pipeline Ventas** | Pipeline visual con etapas personalizables | `models/crm.py`, `schemas/crm.py`, `api/v1/endpoints/crm.py` | `POST/GET/PUT/DELETE /api/v1/crm/pipelines`, `POST/GET/PUT/DELETE /api/v1/crm/pipelines/:id/stages` |
+| **Leads** | Gestión de leads (nuevo→ganado/perdido) | `models/crm.py`, `schemas/crm.py`, `api/v1/endpoints/crm.py` | `POST/GET/PUT/DELETE /api/v1/crm/leads` |
+| **Oportunidades** | Oportunidades con monto, probabilidad | `models/crm.py`, `schemas/crm.py`, `api/v1/endpoints/crm.py` | `POST/GET/PUT/DELETE /api/v1/crm/opportunities`, `PUT /api/v1/crm/opportunities/:id/stage` |
+| **Actividades** | Llamada/email/reunión/tarea/nota | `models/crm.py`, `schemas/crm.py`, `api/v1/endpoints/crm.py` | `POST/GET/PUT/DELETE /api/v1/crm/activities` |
+| **Segmentación** | Segmentos manual/regla/RFM | `models/crm.py`, `schemas/crm.py`, `api/v1/endpoints/crm.py` | `POST/GET/PUT/DELETE /api/v1/crm/segments` |
+| **Automatización** | Triggers + actions | `models/crm.py`, `schemas/crm.py`, `api/v1/endpoints/crm.py` | `POST/GET/PUT/DELETE /api/v1/crm/automations` |
+
+**Modelos de datos:**
+- `CRMPipeline`: name, description, is_default, order (flujo de ventas de la empresa)
+- `CRMPipelineStage`: pipeline_id, name, order, probability_percentage, color (etapas del pipeline)
+- `CRMLead`: company_id, name, source (website, referral, social, ad, event), status (nuevo, contactado, cualificado, propuesta, negociacion, ganado, perdido), email, phone, converted_to_client_id
+- `CRMOpportunity`: lead_id, stage_id, name, description, estimated_amount, probability, close_date, status (abierta, ganada, perdida), client_id
+- `CRMActivity`: opportunity_id, lead_id, type (llamada, email, reunion, tarea, nota), status (pendiente, completada, cancelada), scheduled_at, completed_at, description
+- `CRMContactSegment`: name, description, type (manual, regla, rfm), filter_config (JSON para segmentos dinámicos)
+- `CRMContactSegmentMember`: segment_id, client_id (miembros de segmentos)
+- `CRMAutomation`: name, trigger_type (lead_creado, oportunidad_ganada, oportunidad_perdida, stage_changed), trigger_config, actions (JSON)
+
+**Características:**
+- Múltiples pipelines de ventas por empresa
+- Etapas personalizables con probabilidad de closure
+- Leads con seguimiento de fuente y estado
+- Conversión de lead a cliente
+- Oportunidades con monto estimado y probabilidad de cierre
+- Cálculo de pipeline value y weighted pipeline
+- Actividades vinculadas a leads y oportunidades
+- Segmentación de clientes (manual, por regla, RFM)
+- Automatizaciones con triggers y acciones
+- Estadísticas CRM: total leads/oportunidades, tasa de conversión, pipeline value
+- Frontend: componente `contaec-crm.tsx` con vista Kanban del pipeline
+
+### Fase 13: Proyectos y Servicios ✅ IMPLEMENTADA
+
+| Componente | Descripción | Archivos | Endpoints |
+|------------|-------------|----------|-----------|
+| **Proyectos** | CRUD de proyectos con seguimiento | `models/project.py` (Proyecto), `schemas/project.py`, `api/v1/endpoints/projects.py` | `POST/GET/PUT/DELETE /api/v1/projects` |
+| **Tareas** | Tareas con prioridad y estado | `models/project.py` (ProyectoTarea), `schemas/project.py`, `api/v1/endpoints/projects.py` | `POST/GET/PUT/DELETE /api/v1/projects/:id/tareas` |
+| **Recursos** | Recursos humanos/materiales/equipo | `models/project.py` (ProyectoRecurso), `schemas/project.py`, `api/v1/endpoints/projects.py` | `POST/GET/PUT/DELETE /api/v1/projects/:id/recursos` |
+| **Timesheets** | Registro de horas trabajadas | `models/project.py` (ProyectoTimesheet), `schemas/project.py`, `api/v1/endpoints/projects.py` | `POST/GET/PUT/DELETE /api/v1/projects/:id/timesheets` |
+| **Costos** | Costos adicionales de proyecto | `models/project.py` (ProyectoCosto), `schemas/project.py`, `api/v1/endpoints/projects.py` | `POST/GET/PUT/DELETE /api/v1/projects/:id/costos` |
+| **Rentabilidad** | Cálculo automático de márgenes | `api/v1/endpoints/projects.py`, `schemas/project.py` | `GET /api/v1/projects/stats`, `POST /api/v1/projects/:id/recalcular` |
+
+**Modelos de datos:**
+- `Proyecto`: codigo (PRY-001), nombre, descripcion, cliente_id, cliente_nombre, estado (planificacion, en_progreso, en_pausa, completado, cancelado), fecha_inicio, fecha_fin_estimada, fecha_fin_real, presupuesto, costo_real, ingreso, margen, margen_porcentaje, progreso, responsable
+- `ProyectoTarea`: proyecto_id, nombre, descripcion, estado (pendiente, en_progreso, completada, cancelada), prioridad (baja, media, alta, critica), fecha_inicio, fecha_fin_estimada, fecha_fin_real, asignado_a, progreso
+- `ProyectoRecurso`: proyecto_id, tipo (humano, material, equipo), nombre, descripcion, costo_unitario, cantidad, costo_total
+- `ProyectoTimesheet`: proyecto_id, tarea_id, user_id, recurso_id, horas_trabajadas, tarifa_hora, costo_total, facturable, fecha_trabajo, descripcion
+- `ProyectoCosto`: proyecto_id, concepto, descripcion, monto, fecha_costo, tipo (material, servicio, otro)
+
+**Características:**
+- Gestión de proyectos con código auto-generado (PRY-001)
+- Estados del proyecto: planificación → en progreso → en pausa → completado/cancelado
+- Tareas con prioridad (baja, media, alta, crítica) y estado
+- Recursos humanos, materiales y equipos con costo unitario y cantidad
+- Timesheets con horas trabajadas, tarifa/hora, costo total, facturable/no facturable
+- Costos adicionales por concepto (materiales, servicios, otros)
+- Cálculo automático de rentabilidad: ingreso - costo_real = margen
+- Progreso porcentual del proyecto
+- Recálculo automático de márgenes al modificar costos/ingresos
+- Estadísticas de proyectos por estado, cliente, responsable
+- Frontend: componente `contaec-projects.tsx` con gestión completa de proyectos, tareas, recursos, timesheets y costos
+
+### Fase 12: Integraciones ✅ IMPLEMENTADA
+
+| Componente | Descripción | Archivos | Endpoints |
+|------------|-------------|----------|-----------|
+| **Cuentas Bancarias** | CRUD de cuentas bancarias de la empresa | `models/integration.py` (CuentaBancaria), `schemas/integration.py`, `api/v1/endpoints/integrations.py` | `POST/GET/PUT/DELETE /api/v1/integrations/bank/accounts` |
+| **Extractos Bancarios** | Importación de extractos por periodo | `models/integration.py` (ExtractoBancario), `schemas/integration.py`, `api/v1/endpoints/integrations.py` | `POST/GET/DELETE /api/v1/integrations/bank/statements` |
+| **Movimientos Bancarios** | Movimientos con conciliación | `models/integration.py` (MovimientoBancario), `schemas/integration.py`, `api/v1/endpoints/integrations.py` | `POST/GET/PUT/DELETE /api/v1/integrations/bank/movements`, `POST /api/v1/integrations/bank/import-csv` |
+| **Conciliación** | Conciliación manual/automática | `api/v1/endpoints/integrations.py`, `schemas/integration.py` | `PUT /api/v1/integrations/bank/movements/{id}` |
+| **E-Commerce** | Conectores Shopify, WooCommerce, etc. | `models/integration.py` (EcommerceConnector), `schemas/integration.py`, `api/v1/endpoints/integrations.py` | `POST/GET/PUT/DELETE /api/v1/integrations/ecommerce/connectors` |
+| **Sincronización** | Sync productos, órdenes, clientes, inventario | `models/integration.py` (EcommerceSyncLog), `api/v1/endpoints/integrations.py` | `POST /api/v1/integrations/ecommerce/{id}/sync`, `POST /api/v1/integrations/ecommerce/{id}/sync-products`, `/sync-orders`, `/sync-inventory`, `GET /api/v1/integrations/ecommerce/sync-logs` |
+
+**Modelos de datos:**
+- `CuentaBancaria`: nombre_banco, codigo_banco, tipo_cuenta (ahorros/corriente), numero_cuenta, iban, swift_bic, titular, moneda, saldo_inicial, saldo_actual, formato_extracto (csv/ofx/mt940/excel), configuracion_mapeo (JSON)
+- `ExtractoBancario`: cuenta_bancaria_id, fecha_desde, fecha_hasta, saldo_inicial, saldo_final, total_debitos, total_creditos, numero_movimientos, movimientos_conciliados, estado (importado, en_conciliacion, conciliado, con_error), archivo_original
+- `MovimientoBancario`: cuenta_bancaria_id, extracto_id, fecha, tipo (debito/credito), monto, saldo_posterior, referencia, descripcion, beneficiario, documento, conciliacion_estado (pendiente/conciliado/ignorado), conciliacion_fecha, comprobante_id, conciliacion_nota, categoria
+- `EcommerceConnector`: plataforma (shopify/woocommerce/opencart/prestashop/magento/meli/otro), url_tienda, api_key, api_secret, access_token, refresh_token, webhook_url, configuracion_extra (JSON), estado (configurado/conectado/sincronizando/error/desactivado), sincronizacion_auto, frecuencia_sync, sync_productos, sync_ordenes, sync_clientes, sync_inventario
+- `EcommerceSyncLog`: connector_id, tipo_sync (productos/ordenes/clientes/inventario/completo), estado (pendiente/en_progreso/completada/con_error), fecha_inicio, fecha_fin, registros_procesados/creados/actualizados/errores, detalle_errores (JSON), resultado_resumen (JSON)
+
+**Características:**
+- Múltiples cuentas bancarias por empresa con saldos inicial/actual
+- Importación de extractos bancarios en formatos CSV, OFX, MT940, Excel
+- Configuración de mapeo de columnas para extractos personalizados
+- Movimientos bancários con clasificación (débito/crédito) y categorías auto-detectadas
+- Conciliación bancaria manual y automática (vinculación con comprobantes)
+- Estados de conciliación: pendiente → conciliado/ignorado
+- Detección automática de categorías por descripción del movimiento
+- Conectores e-commerce multi-plataforma (6 plataformas + genérico)
+- Sincronización selectiva: productos, órdenes, clientes, inventario
+- Sincronización automática con frecuencia configurable (en minutos)
+- Logs de sincronización con métricas detalladas (procesados, creados, actualizados, errores)
+- Test de conexión antes de guardar conector
+- Estadísticas de uso: total cuentas, extractos pendientes, movimientos por conciliar, sync logs
+- Frontend: componente `contaec-integrations.tsx` con pestañas para bancos y e-commerce
+
+### Fase 13: Machine Learning / IA ✅ IMPLEMENTADA
+
+| Componente | Descripción | Archivos | Endpoints |
+|------------|-------------|----------|-----------|
+| **Predicciones** | Predicción de ventas, ingresos, gastos, flujo de caja | `models/ml_ai.py` (MLPrediccion), `schemas/ml_ai.py`, `api/v1/endpoints/ml_ai.py` | `POST/GET/DELETE /api/v1/ml/predictions`, `GET /api/v1/ml/stats` |
+| **Detección de Fraude** | Alertas de fraude con scoring y severidad | `models/ml_ai.py` (MLAlertaFraude), `schemas/ml_ai.py`, `api/v1/endpoints/ml_ai.py` | `POST /api/v1/ml/fraud/scan`, `GET/PUT /api/v1/ml/fraud/alerts` |
+| **Chatbot** | Sesiones de chat, mensajes, reglas | `models/ml_ai.py` (MLChatbotSesion, MLChatbotMensaje), `schemas/ml_ai.py`, `api/v1/endpoints/ml_ai.py` | `POST/GET/DELETE /api/v1/ml/chatbot/sessions`, `POST /api/v1/ml/chatbot/chat`, `GET /api/v1/ml/chatbot/sessions/{id}/messages` |
+| **Recomendaciones** | Recomendaciones de producto, cliente, precio, inventario, financiera | `models/ml_ai.py` (MLRecomendacion), `schemas/ml_ai.py`, `api/v1/endpoints/ml_ai.py` | `GET /api/v1/ml/recommendations`, `POST /api/v1/ml/recommendations/generate`, `PUT/DELETE /api/v1/ml/recommendations/{id}` |
+| **Auto-categorización** | Reglas de categorización por keywords/regex | `models/ml_ai.py` (MLCategoriaRegla), `schemas/ml_ai.py`, `api/v1/endpoints/ml_ai.py` | `GET/POST/PUT/DELETE /api/v1/ml/categorize/rules`, `POST /api/v1/ml/categorize/categorize` |
+
+**Modelos de datos:**
+- `MLPrediccion`: tipo (ventas/ingresos/gastos/flujo_caja), estado (pendiente/completada/con_error), periodo_desde, periodo_hasta, datos_entrada (JSON), resultado (JSON), metricas (JSON con MAPE, RMSE, R2), modelo_usado (moving_average/exponential_smoothing/linear_regression/arima), confianza (0-100%)
+- `MLAlertaFraude`: tipo_alerta (z-score/duplicado/secuencia_anomala/validacion_ruc), severidad (baja/media/alta/critica), estado (pendiente/confirmado/descartado/investigando), puntuacion_fraude (0-100), evidencia (JSON), comprobante_id, descripcion
+- `MLChatbotSesion`: user_id, estado (activa/cerrada), mensaje_count, ultimo_mensaje_at
+- `MLChatbotMensaje`: session_id, role (user/assistant/system), content, model_used, tokens_used, latency_ms
+- `MLRecomendacion`: tipo (producto/cliente/precio/inventario/financiera), descripcion, prioridad (alta/media/baja), estado (pendiente/aplicada/descartada), impacto_esperado (JSON), metadata (JSON)
+- `MLCategoriaRegla`: nombre, categoria_destino, keywords (lista), patrones_regex (lista), is_active, use_count
+
+**Características:**
+- Predicciones con múltiples modelos: Moving Average, Exponential Smoothing, Linear Regression, ARIMA
+- Métricas de desempeño: MAPE (Mean Absolute Percentage Error), RMSE (Root Mean Square Error), R²
+- Nivel de confianza de predicción (0-100%)
+- Detección de fraude con 4 métodos: Z-score, duplicados, secuencia anómala, validación RUC
+- Alertas de fraude con severidad clasificada y estado de investigación
+- Chatbot híbrido: reglas + LLM (vía z-ai CLI)
+- Sesiones de chat con tracking de mensajes, tokens y latencia
+- Recomendaciones accionables con prioridad e impacto esperado
+- Auto-categorización con reglas personalizables (keywords + regex)
+- Contador de uso de reglas para optimización
+- Estadísticas ML: total predicciones, alertas, sesiones chat, recomendaciones
+- Frontend: componente `contaec-ml-ai.tsx`
 
 ---
 
@@ -1194,15 +1516,16 @@ systemctl restart contaec-backend contaec-frontend
 
 | Métrica | Cantidad |
 |---------|----------|
-| Modelos SQLAlchemy | 80+ |
-| Endpoints API | ~331 |
-| Schemas Pydantic | ~7,000 líneas |
-| Componentes React | 20+ dominio + 45 UI |
-| Funciones API (frontend) | ~320 |
-| Tipos TypeScript | ~170 |
+| Modelos SQLAlchemy | 144+ (10 Fase 1 RRHH + 6 Fase 5 Compras + 5 Fase 6 Multi-Almacén + 4 Fase 7 POS + 5 Fase 8 BI + 4 Fase 9 Presupuestos + 8 Fase 10 CRM + 5 Fase 11 Proyectos + 10 Fase 12 Integraciones + 6 Fase 13 ML/IA) |
+| Endpoints API | ~595 (+17 Fase 1, +6 Fase 6 Email, ~20 Fase 5 Compras, ~15 Fase 6 Multi-Almacén, ~15 Fase 7 POS, ~15 Fase 8 BI, ~20 Fase 9 Presupuestos, ~25 Fase 10 CRM, ~20 Fase 11 Proyectos, ~55 Fase 12 Integraciones, ~23 Fase 13 ML/IA) |
+| Schemas Pydantic | ~11,000 líneas |
+| Componentes React | 70+ dominio + 45 UI (+1 email-template-editor, +1 bi-dashboard, +1 budgets, +1 crm, +1 projects, +1 integrations, +1 ml-ai) |
+| Funciones API (frontend) | ~400 |
+| Tipos TypeScript | ~210 |
 | Traducciones i18n | ~130 keys × 3 idiomas |
 | Librerías Python | 27 |
-| Módulos Core | 15 |
+| Módulos Core | 17 (+2 en Fase 1: payroll_calculations.py, ir_calculation.py) |
+| Fases Completadas | 13/13 ✅ (Fase 0-13 completas per Plan_Maestro.md) |
 
 ---
 

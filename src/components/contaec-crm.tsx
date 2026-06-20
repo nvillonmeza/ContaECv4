@@ -1164,7 +1164,7 @@ function CreateLeadDialog({ open, onOpenChange, companyId, onCreated }: {
             <div className="space-y-2"><Label>Valor Estimado ($)</Label><Input type="number" value={estimatedValue} onChange={(e) => setEstimatedValue(e.target.value)} placeholder="0.00" /></div>
           </div>
           <div className="space-y-2"><Label>Siguiente Seguimiento</Label><Input type="date" value={nextFollowUp} onChange={(e) => setNextFollowUp(e.target.value)} /></div>
-          <div className="space-y-2"><Label>Notas</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Notas sobre el lead" /></div>
+          <div className="space-y-2"><Label>Notas</Label><Textarea className="overflow-y-auto max-h-40" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Notas sobre el lead" /></div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button onClick={handleCreate} disabled={creating}>{creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Crear Lead</Button>
@@ -1249,7 +1249,7 @@ function EditLeadDialog({ lead, open, onOpenChange, onUpdated }: {
             <div className="space-y-2"><Label>Valor Estimado ($)</Label><Input type="number" value={estimatedValue} onChange={(e) => setEstimatedValue(e.target.value)} /></div>
             <div className="space-y-2"><Label>Siguiente Seguimiento</Label><Input type="date" value={nextFollowUp} onChange={(e) => setNextFollowUp(e.target.value)} /></div>
           </div>
-          <div className="space-y-2"><Label>Notas</Label><Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} /></div>
+          <div className="space-y-2"><Label>Notas</Label><Textarea className="overflow-y-auto max-h-40" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} /></div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saving}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Guardar</Button>
@@ -1374,7 +1374,7 @@ function CreateOpportunityDialog({ open, onOpenChange, companyId, clients, pipel
             <div className="space-y-2"><Label>Probabilidad (%)</Label><Input type="number" min="0" max="100" value={probability} onChange={(e) => setProbability(e.target.value)} placeholder="Auto desde etapa" /></div>
             <div className="space-y-2"><Label>Fecha Cierre Estimada</Label><Input type="date" value={expectedCloseDate} onChange={(e) => setExpectedCloseDate(e.target.value)} /></div>
           </div>
-          <div className="space-y-2"><Label>Descripción</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Descripción de la oportunidad" /></div>
+          <div className="space-y-2"><Label>Descripción</Label><Textarea className="overflow-y-auto max-h-40" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Descripción de la oportunidad" /></div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button onClick={handleCreate} disabled={creating}>{creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Crear Oportunidad</Button>
@@ -1451,7 +1451,7 @@ function EditOpportunityDialog({ opportunity, open, onOpenChange, clients, pipel
             <div className="space-y-2"><Label>Probabilidad (%)</Label><Input type="number" min="0" max="100" value={probability} onChange={(e) => setProbability(e.target.value)} /></div>
             <div className="space-y-2"><Label>Fecha Cierre Estimada</Label><Input type="date" value={expectedCloseDate} onChange={(e) => setExpectedCloseDate(e.target.value)} /></div>
           </div>
-          <div className="space-y-2"><Label>Descripción</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} /></div>
+          <div className="space-y-2"><Label>Descripción</Label><Textarea className="overflow-y-auto max-h-40" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} /></div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saving}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Guardar</Button>
@@ -1529,7 +1529,7 @@ function CreateActivityDialog({ open, onOpenChange, companyId, opportunities, on
             </div>
           </div>
           <div className="space-y-2"><Label>Asunto *</Label><Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Asunto de la actividad" /></div>
-          <div className="space-y-2"><Label>Descripción</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Detalles de la actividad" /></div>
+          <div className="space-y-2"><Label>Descripción</Label><Textarea className="overflow-y-auto max-h-40" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Detalles de la actividad" /></div>
           <div className="space-y-2"><Label>Fecha Programada</Label><Input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} /></div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
@@ -1556,6 +1556,16 @@ function CreateSegmentDialog({ open, onOpenChange, companyId, onCreated }: {
       toast.error('El nombre es requerido');
       return;
     }
+    // Parse rules JSON if provided
+    let parsedRules = undefined;
+    if (rules && rules.trim()) {
+      try {
+        parsedRules = JSON.parse(rules);
+      } catch (e) {
+        toast.error('Reglas JSON inválidas. Use formato: {"campo": "valor"}');
+        return;
+      }
+    }
     setCreating(true);
     try {
       await createCRMSegment({
@@ -1564,7 +1574,7 @@ function CreateSegmentDialog({ open, onOpenChange, companyId, onCreated }: {
         type,
         description: description || undefined,
         color,
-        rules: rules || undefined,
+        rules: parsedRules,
       });
       toast.success('Segmento creado');
       onOpenChange(false);
@@ -1586,21 +1596,25 @@ function CreateSegmentDialog({ open, onOpenChange, companyId, onCreated }: {
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2"><Label>Nombre *</Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nombre del segmento" /></div>
-          <div className="space-y-2"><Label>Descripción</Label><Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Descripción del segmento" /></div>
+          <div className="space-y-2"><Label>Descripción</Label><Textarea className="overflow-y-auto max-h-40" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} placeholder="Descripción del segmento" /></div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2"><Label>Color</Label><div className="flex items-center gap-2"><Input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="w-10 h-10 p-1" /><span className="text-sm text-muted-foreground">{color}</span></div></div>
-            <div className="space-y-2"><Label>Tipo</Label>
+            <div className="space-y-2">
+              <Label>Tipo</Label>
               <Select value={type} onValueChange={setType}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="manual">Manual</SelectItem>
-                  <SelectItem value="regla">Regla</SelectItem>
+                  <SelectItem value="regla">Regla (JSON)</SelectItem>
                   <SelectItem value="rfm">RFM</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                Manual: agrega clientes manualmente • Regla: usa condiciones JSON • RFM: segmentación por valor
+              </p>
             </div>
           </div>
-          <div className="space-y-2"><Label>Reglas (JSON)</Label><Textarea className="overflow-y-auto max-h-40" value={rules} onChange={(e) => setRules(e.target.value)} rows={3} placeholder='{"campo": "industry", "valor": "tecnologia"}' /></div>
+          <div className="space-y-2"><Label>Reglas (JSON)</Label><Textarea className="overflow-y-auto max-h-40 font-mono text-xs" value={rules} onChange={(e) => setRules(e.target.value)} rows={3} placeholder='Ej: {"campo": "industry", "valor": "tecnologia"}' /></div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button onClick={handleCreate} disabled={creating}>{creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Crear Segmento</Button>
@@ -1631,8 +1645,28 @@ function CreateAutomationDialog({ open, onOpenChange, companyId, onCreated }: {
 
   async function handleCreate() {
     if (!name || !triggerType) {
-      toast.error('Complete los campos requeridos (nombre, trigger)');
+      toast.error('Nombre y Trigger son requeridos');
       return;
+    }
+    // Parse trigger conditions JSON if provided
+    let parsedConditions = undefined;
+    if (triggerConditions && triggerConditions.trim()) {
+      try {
+        parsedConditions = JSON.parse(triggerConditions);
+      } catch (e) {
+        toast.error('Condiciones JSON inválidas. Ejemplo: {"campo": "stage", "valor": "propuesta"}');
+        return;
+      }
+    }
+    // Parse actions JSON if provided
+    let parsedActions = undefined;
+    if (actions && actions.trim()) {
+      try {
+        parsedActions = JSON.parse(actions);
+      } catch (e) {
+        toast.error('Acciones JSON inválidas. Ejemplo: {"tipo": "email", "destinatario": "lead"}');
+        return;
+      }
     }
     setCreating(true);
     try {
@@ -1640,8 +1674,8 @@ function CreateAutomationDialog({ open, onOpenChange, companyId, onCreated }: {
         company_id: companyId,
         name,
         trigger_type: triggerType,
-        trigger_conditions: triggerConditions || undefined,
-        actions: actions || undefined,
+        trigger_conditions: parsedConditions,
+        actions: parsedActions,
         is_active: isActive,
       });
       toast.success('Automatización creada');
@@ -1673,8 +1707,8 @@ function CreateAutomationDialog({ open, onOpenChange, companyId, onCreated }: {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2"><Label>Condiciones (JSON)</Label><Textarea className="overflow-y-auto max-h-40" value={triggerConditions} onChange={(e) => setTriggerConditions(e.target.value)} rows={3} placeholder='{"campo": "stage", "operador": "equals", "valor": "propuesta"}' /></div>
-          <div className="space-y-2"><Label>Acciones (JSON)</Label><Textarea className="overflow-y-auto max-h-40" value={actions} onChange={(e) => setActions(e.target.value)} rows={3} placeholder='{"tipo": "email", "destinatario": "lead", "plantilla": "seguimiento"}' /></div>
+          <div className="space-y-2"><Label>Condiciones (JSON)</Label><Textarea className="overflow-y-auto max-h-40 font-mono text-xs" value={triggerConditions} onChange={(e) => setTriggerConditions(e.target.value)} rows={3} placeholder='Ej: {"campo": "source", "operador": "equals", "valor": "website"}' /></div>
+          <div className="space-y-2"><Label>Acciones (JSON)</Label><Textarea className="overflow-y-auto max-h-40 font-mono text-xs" value={actions} onChange={(e) => setActions(e.target.value)} rows={3} placeholder='Ej: {"accion": "send_email", "plantilla": "bienvenida"}' /></div>
           <div className="flex items-center gap-2">
             <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="rounded" />
             <Label>Activar inmediatamente</Label>

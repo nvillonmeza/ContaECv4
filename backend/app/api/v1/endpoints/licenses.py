@@ -11,6 +11,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.core.licenses import (
+    LICENSE_TIERS,
+    get_tier_limits,
+    has_feature,
+    get_license_limits,
+    get_feature_label,
+    get_minimum_tier_for_feature,
+)
 from app.models.user import User, LicenseType
 from app.models.company import Company
 from app.models.comprobante import Comprobante
@@ -21,7 +29,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/licenses", tags=["Licencias"])
 
 # ==========================================
-# Precios y límites por tier de licencia
+# Precios por tier de licencia
 # ==========================================
 
 LICENSE_PRICES = {
@@ -31,180 +39,113 @@ LICENSE_PRICES = {
     LicenseType.ANUAL: {"price": 130.00, "months": 12, "label": "Anual"},
 }
 
-# Límites y features por tipo de licencia
-LICENSE_TIERS = {
-    LicenseType.MENSUAL: {
-        "max_companies": 1,
-        "max_users_per_company": 2,
-        "max_comprobantes_month": 50,
-        "max_employees": 5,
-        "max_products": 100,
-        "features": {
-            "electronic_invoicing": True,
-            "proformas": True,
-            "basic_accounting": True,
-            "inventory": True,
-            "pos": False,
-            "multi_warehouse": False,
-            "payroll": False,
-            "budgets": False,
-            "projects": False,
-            "banking_integration": False,
-            "ecommerce_integration": False,
-            "ml_predictions": False,
-            "api_access": False,
-            "custom_reports": False,
-            "priority_support": False,
-        },
-    },
-    LicenseType.TRIMESTRAL: {
-        "max_companies": 2,
-        "max_users_per_company": 5,
-        "max_comprobantes_month": 200,
-        "max_employees": 15,
-        "max_products": 500,
-        "features": {
-            "electronic_invoicing": True,
-            "proformas": True,
-            "basic_accounting": True,
-            "inventory": True,
-            "pos": True,
-            "multi_warehouse": False,
-            "payroll": True,
-            "budgets": False,
-            "projects": False,
-            "banking_integration": True,
-            "ecommerce_integration": False,
-            "ml_predictions": False,
-            "api_access": False,
-            "custom_reports": False,
-            "priority_support": False,
-        },
-    },
-    LicenseType.SEMESTRAL: {
-        "max_companies": 5,
-        "max_users_per_company": 10,
-        "max_comprobantes_month": 500,
-        "max_employees": 50,
-        "max_products": 2000,
-        "features": {
-            "electronic_invoicing": True,
-            "proformas": True,
-            "basic_accounting": True,
-            "inventory": True,
-            "pos": True,
-            "multi_warehouse": True,
-            "payroll": True,
-            "budgets": True,
-            "projects": True,
-            "banking_integration": True,
-            "ecommerce_integration": True,
-            "ml_predictions": True,
-            "api_access": False,
-            "custom_reports": True,
-            "priority_support": False,
-        },
-    },
-    LicenseType.ANUAL: {
-        "max_companies": 999,  # Prácticamente ilimitado
-        "max_users_per_company": 999,
-        "max_comprobantes_month": 9999,
-        "max_employees": 999,
-        "max_products": 99999,
-        "features": {
-            "electronic_invoicing": True,
-            "proformas": True,
-            "basic_accounting": True,
-            "inventory": True,
-            "pos": True,
-            "multi_warehouse": True,
-            "payroll": True,
-            "budgets": True,
-            "projects": True,
-            "banking_integration": True,
-            "ecommerce_integration": True,
-            "ml_predictions": True,
-            "api_access": True,
-            "custom_reports": True,
-            "priority_support": True,
-        },
-    },
-}
-
 # Teléfono de soporte para WhatsApp
 WHATSAPP_NUMBER = "593960068866"
-
-
-def get_tier_limits(license_type: str) -> dict:
-    """Obtiene los límites y features para un tipo de licencia"""
-    try:
-        lt = LicenseType(license_type)
-        return LICENSE_TIERS.get(lt, LICENSE_TIERS[LicenseType.MENSUAL])
-    except ValueError:
-        return LICENSE_TIERS[LicenseType.MENSUAL]
-
-
-def has_feature(license_type: str, feature: str) -> bool:
-    """Verifica si un tipo de licencia tiene acceso a un feature específico"""
-    tier = get_tier_limits(license_type)
-    return tier.get("features", {}).get(feature, False)
 
 
 @router.get("/status")
 async def get_license_status(
     current_user: User = Depends(get_current_user),
 ):
-    """Obtener estado de la licencia del usuario actual con límites del tier y información de trial"""
+    """
+    Obtener estado de la licencia del usuario actual.
+
+    Prioriza el trial sobre la licencia: si el usuario está en trial activo,
+    ese es el estado principal. Si el trial expiró, se muestra la licencia.
+    """
     now = datetime.now(timezone.utc)
 
-    is_expired = False
-    days_remaining = None
-
-    # Trial info
+    # === TRIAL INFO (prioritario) ===
     is_trial = current_user.is_trial or False
     trial_days_remaining = None
+    trial_start_date_str = None
     trial_end_date_str = None
+    trial_active = False
 
     if is_trial and current_user.trial_end_date:
         trial_end = current_user.trial_end_date
         if trial_end.tzinfo is None:
             trial_end = trial_end.replace(tzinfo=timezone.utc)
         trial_end_date_str = trial_end.isoformat()
-        if trial_end < now:
-            trial_days_remaining = 0
-        else:
+
+        if current_user.trial_start_date:
+            trial_start = current_user.trial_start_date
+            if trial_start.tzinfo is None:
+                trial_start = trial_start.replace(tzinfo=timezone.utc)
+            trial_start_date_str = trial_start.isoformat()
+
+        if trial_end >= now:
             trial_days_remaining = (trial_end - now).days
+            trial_active = True
+        else:
+            trial_days_remaining = 0
+            trial_active = False
+
+    # === LICENSE INFO ===
+    license_days_remaining = None
+    license_start_date_str = None
+    license_end_date_str = None
+    license_expired = False
+    license_active = False
 
     if current_user.license_end_date:
         end_date = current_user.license_end_date
         if end_date.tzinfo is None:
             end_date = end_date.replace(tzinfo=timezone.utc)
-        if end_date < now:
-            is_expired = True
-            days_remaining = 0
-        else:
-            days_remaining = (end_date - now).days
+        license_end_date_str = end_date.isoformat()
 
-    # If on trial and trial is still active, don't mark as expired yet
-    if is_trial and trial_days_remaining is not None and trial_days_remaining > 0:
-        is_expired = False
+        if current_user.license_start_date:
+            start_date = current_user.license_start_date
+            if start_date.tzinfo is None:
+                start_date = start_date.replace(tzinfo=timezone.utc)
+            license_start_date_str = start_date.isoformat()
+
+        if end_date >= now:
+            license_days_remaining = (end_date - now).days
+            license_active = True
+        else:
+            license_days_remaining = 0
+            license_expired = True
+
+    # === ESTADO CONSOLIDADO ===
+    # Si el trial está activo, ese es el estado principal
+    # Si el trial expiró pero hay licencia, se muestra la licencia
+    # Si no hay trial ni licencia, se muestra sin licencia
+    effective_is_active = trial_active or license_active
+    effective_is_expired = not effective_is_active and (license_expired or (is_trial and not trial_active))
+    effective_days_remaining = None
+
+    if trial_active:
+        effective_days_remaining = trial_days_remaining
+    elif license_active:
+        effective_days_remaining = license_days_remaining
 
     # Incluir límites del tier
     tier_info = get_tier_limits(current_user.license_type) if current_user.license_type else None
 
     return {
+        # Estado consolidado
+        "is_active": effective_is_active,
+        "is_expired": effective_is_expired,
+        "days_remaining": effective_days_remaining,
+
+        # Info de licencia
         "license_type": current_user.license_type if current_user.license_type else None,
-        "license_start_date": current_user.license_start_date.isoformat() if current_user.license_start_date else None,
-        "license_end_date": current_user.license_end_date.isoformat() if current_user.license_end_date else None,
-        "is_expired": is_expired,
-        "days_remaining": days_remaining,
-        "is_active": current_user.is_active,
-        "tier_limits": tier_info,
-        # Trial info
+        "license_start_date": license_start_date_str,
+        "license_end_date": license_end_date_str,
+        "license_days_remaining": license_days_remaining,
+        "license_active": license_active,
+        "license_expired": license_expired,
+
+        # Info de trial
         "is_trial": is_trial,
-        "trial_start_date": current_user.trial_start_date.isoformat() if current_user.trial_start_date else None,
+        "trial_start_date": trial_start_date_str,
         "trial_end_date": trial_end_date_str,
         "trial_days_remaining": trial_days_remaining,
+        "trial_active": trial_active,
+
+        # Límites del tier
+        "tier_limits": tier_info,
     }
 
 

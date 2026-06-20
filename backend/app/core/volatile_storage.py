@@ -429,3 +429,41 @@ async def get_storage_stats() -> dict:
         "active_files": active_files,
         "temp_dir": str(TEMP_DIR),
     }
+
+
+async def run_cleanup_now() -> dict:
+    """
+    Ejecutar limpieza inmediata de archivos temporales.
+
+    Returns:
+        Diccionario con estadísticas de limpieza
+    """
+    from app.core.cleanup import cleanup_expired_files, cleanup_old_temp_dirs
+
+    logger.info("Ejecutando limpieza inmediata...")
+
+    stats = cleanup_expired_files()
+    dir_stats = cleanup_old_temp_dirs()
+
+    # Combinar estadísticas
+    stats["dirs_deleted"] = dir_stats["dirs_deleted"]
+    stats["bytes_freed_total"] = stats["bytes_freed"] + dir_stats["bytes_freed"]
+
+    logger.info(
+        f"Limpieza inmediata completada: {stats['files_deleted']} archivos, "
+        f"{stats['dirs_deleted']} directorios, "
+        f"{stats['bytes_freed_total'] / 1024:.2f} KB liberados"
+    )
+
+    return stats
+
+
+def get_storage_status() -> dict:
+    """
+    Obtener estado actual del almacenamiento volátil.
+
+    Returns:
+        Diccionario con uso de espacio temporal
+    """
+    from app.core.cleanup import get_temp_storage_status
+    return get_temp_storage_status()

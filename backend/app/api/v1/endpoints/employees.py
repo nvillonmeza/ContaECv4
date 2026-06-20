@@ -100,9 +100,33 @@ async def create_employee(
 
     Verifica que la empresa pertenezca al usuario y que no exista
     otro empleado con la misma cédula en la empresa.
+
+    Valida el límite de empleados según el plan de licencia.
     """
     # Verificar que la empresa pertenece al usuario
     await _get_company_for_user(db, data.company_id, current_user.id)
+
+    # Validar límite de empleados según licencia
+    from app.core.utils import get_license_limits
+
+    limits = get_license_limits(current_user)
+    max_employees = limits['max_employees']
+
+    # Contar empleados activos en la empresa
+    result = await db.execute(
+        select(func.count(Employee.id)).where(
+            Employee.company_id == data.company_id,
+            Employee.is_active == True
+        )
+    )
+    current_count = result.scalar() or 0
+
+    if current_count >= max_employees:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Límite de empleados alcanzado en esta empresa. Tu plan actual permite {max_employees} empleado(s). "
+                   f"Contacta a soporte para actualizar tu licencia."
+        )
 
     # Verificar que no exista un empleado con la misma cédula en la empresa
     result = await db.execute(

@@ -60,6 +60,11 @@ from app.models.audit_log import (
 from app.models.email_template import (
     EmailTemplate,
 )
+from app.models.email_log import (
+    EmailLog,
+    EmailLogEstado,
+    EmailLogTipo,
+)
 from app.models.smtp_profile import (
     SMTPProfile,
     SmtpConnectionProtocol,
@@ -212,6 +217,34 @@ from app.models.hr_extended2 import (
     UtilidadesEstado,
     UtilidadesParticipacion,
 )
+from app.models.hr_contract import (
+    Contrato as ContratoLaboral,
+    ContratoEstado,
+    ContratoTipo,
+)
+from app.models.hr_vacation import (
+    VacacionesPeriodo,
+    VacacionesSolicitud,
+    VacacionesHistorial,
+    VacacionesEstado,
+)
+from app.models.hr_loan import (
+    PrestamoEmpleado,
+    PrestamoDetalle,
+    PrestamoEstado,
+    PrestamoTipo,
+)
+from app.models.hr_history import (
+    HistorialLaboral,
+    MovimientoTipo,
+    MovimientoEstado,
+)
+from app.models.hr_shift import (
+    TurnoRotativo,
+    TurnoAsignacion,
+    TurnoEstado,
+    TurnoTipo,
+)
 
 __all__ = [
     # Usuario
@@ -260,6 +293,9 @@ __all__ = [
     "AuditLog",
     # Plantillas de Correo
     "EmailTemplate",
+    "EmailLog",
+    "EmailLogTipo",
+    "EmailLogEstado",
     # Perfiles SMTP
     "SMTPProfile",
     "SmtpProviderType",
@@ -397,4 +433,23 @@ __all__ = [
     "UtilidadesParticipacion",
     "UtilidadesEstado",
     "UtilidadesDetalle",
+    # RRHH Fase 1 - Contratos, Vacaciones, Préstamos, Historial, Turnos
+    "ContratoLaboral",
+    "ContratoEstado",
+    "ContratoTipo",
+    "VacacionesPeriodo",
+    "VacacionesSolicitud",
+    "VacacionesHistorial",
+    "VacacionesEstado",
+    "PrestamoEmpleado",
+    "PrestamoDetalle",
+    "PrestamoEstado",
+    "PrestamoTipo",
+    "HistorialLaboral",
+    "MovimientoTipo",
+    "MovimientoEstado",
+    "TurnoRotativo",
+    "TurnoAsignacion",
+    "TurnoEstado",
+    "TurnoTipo",
 ]
