@@ -198,7 +198,7 @@ export function EmailTemplateEditor({ companyId }: EmailTemplateEditorProps) {
         sample_data: sampleData,
       });
 
-      setPreviewHtml(result.rendered_html || result.cuerpo_html);
+      setPreviewHtml(result.rendered_html ?? result.cuerpo_html ?? "");
       setIsPreviewOpen(true);
     } catch (error) {
       toast.error('Error al generar vista previa');
