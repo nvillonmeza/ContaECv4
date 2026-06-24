@@ -25,7 +25,6 @@ const eslintConfig = [
 
       // React rules
       "react-hooks/exhaustive-deps": "warn",
-      "react-hooks/purity": "warn",
       "react/no-unescaped-entities": "off",
       "react/display-name": "off",
       "react/prop-types": "off",
@@ -46,7 +45,7 @@ const eslintConfig = [
       "no-fallthrough": "warn",
       "no-mixed-spaces-and-tabs": "error",
       "no-redeclare": "error",
-      "no-undef": "error",
+      "no-undef": "off", // TypeScript catches undefined identifiers via `tsc`; ESLint's no-undef isn't scope-aware for globals like React/RequestInit
       "no-unreachable": "error",
       "no-useless-escape": "warn",
     },
