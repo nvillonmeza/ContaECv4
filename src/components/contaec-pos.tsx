@@ -63,7 +63,6 @@ import { toast } from 'sonner';
 import {
   openPOSSession,
   getPOSSessions,
-  getPOSSession,
   closePOSSession,
   getPOSSessionResumen,
   createPOSArqueo,
@@ -78,7 +77,6 @@ import {
   type POSCashSessionOpen,
   type POSTicket,
   type POSTicketCreate,
-  type POSArqueo,
   type POSArqueoCreate,
   type POSProductSearchResult,
   type POSTicketPrintData,
