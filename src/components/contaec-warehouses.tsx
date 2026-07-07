@@ -54,7 +54,6 @@ import {
   getWarehouses,
   createWarehouse,
   updateWarehouse,
-  deleteWarehouse,
   getWarehouseLocations,
   createWarehouseLocation,
   updateWarehouseLocation,
@@ -90,7 +89,7 @@ interface ContaECWarehousesProps {
   companies: Company[];
 }
 
-export function ContaECWarehouses({ user, companies }: ContaECWarehousesProps) {
+export function ContaECWarehouses({ user: _user, companies }: ContaECWarehousesProps) {
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>(() =>
     companies.length > 0 ? companies[0].id : ''
   );
@@ -654,7 +653,7 @@ function TransferenciasTab({ companyId }: { companyId: string }) {
     setProductSearch(''); setWizardStep(1);
   }
 
-  function addWizardItem() {
+  function _addWizardItem() {
     setWItems([...wItems, { product_id: '', cantidad: '1', costo_unitario: '0' }]);
   }
 
