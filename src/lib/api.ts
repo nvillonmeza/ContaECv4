@@ -2434,7 +2434,7 @@ async function getPOSSession(id: string): Promise<POSCashSession> {
 }
 
 async function closePOSSession(id: string, data: { monto_cierre_efectivo: number; observaciones_cierre?: string }): Promise<POSCashSession> {
-  return apiPut<POSCashSession>(`/v1/pos/sessions/${id}/cerrar`, data);
+  return apiPut<POSCashSession>(`/v1/pos/sessions/${id}/close`, data);
 }
 
 async function getPOSSessionResumen(id: string): Promise<POSCashSessionResumen> {
