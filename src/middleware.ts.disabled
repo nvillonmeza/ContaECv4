@@ -18,7 +18,7 @@ export default createMiddleware({
   // - 'as-needed': Only add prefix when needed (recommended for existing apps)
   // - 'always': Always use prefix
   // - 'never': Never use prefix (manual locale handling)
-  localePrefix: 'as-needed',
+  localePrefix: 'never',
 
   // Optional: Pathnames for route matching
   // pathnames: {
