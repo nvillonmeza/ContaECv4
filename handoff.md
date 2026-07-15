@@ -11,6 +11,7 @@
 **Sesión 7:** 2026-07-06 — Solución a errores de compilación por componentes UI faltantes en proyectos y limpieza exhaustiva de warnings
 **Sesión 8:** 2026-07-07 — Corrección de ruta de cierre de sesión POS en la API y alineación de firmas para compilación exitosa
 **Sesión 9:** 2026-07-10 — Corrección del error de Locale esperado en getRequestConfig de next-intl
+**Sesión 10:** 2026-07-15 — Reactivación de middleware de next-intl para resolver error 404
 
 ## Objetivo
 El objetivo principal es limpiar todos los warnings de ESLint y las importaciones/declaraciones no utilizadas en el frontend (Next.js) para lograr una compilación y linting sin errores, y luego desplegar estos cambios a producción. Además, resolver el error de tipo `deleteProyectoTimesheet` en `contaec-projects.tsx` y el error `Cannot find module 'socket.io-client'` en `examples/websocket/frontend.tsx`.
@@ -25,6 +26,7 @@ Para la Sesión 6, se ha realizado una revisión del proyecto y se estableció l
 Para la **Sesión 7**, se ha solucionado el error crítico de compilación en `src/components/contaec-projects.tsx` importando `CardHeader` y `CardTitle` (que se habían removido por error en una sesión previa al creer que no se utilizaban). También se limpiaron todos los warnings restantes en `contaec-purchases.tsx`, `contaec-suppliers.tsx`, `email-template-editor.tsx`, `contaec-crm.tsx`, `contaec-pos.tsx`, `contaec-warehouses.tsx`, y `contaec-settings.tsx`.
 Para la **Sesión 8**, se corrigió la llamada de la API `closePOSSession` en `src/lib/api.ts` para que apunte a `/v1/pos/sessions/${id}/close` (en vez de `/cerrar`), solucionando el mismatch con el backend. Se confirmó que la firma local espera 2 argumentos en coincidencia con su uso en `contaec-pos.tsx`, por lo que una vez que el usuario copie (SCP) el código local actualizado, se sobreescribirá la modificación incorrecta del servidor (`closePOSSessionAPI`) y el build compilará de forma limpia.
 Para la **Sesión 9**, se ha agregado la propiedad `locale` en el retorno de `getRequestConfig` en `src/i18n/request.ts` y se ha desactivado el middleware (`src/middleware.ts` renombrado a `src/middleware.ts.disabled`). Esto soluciona la falta del locale esperado que reportaba el middleware/servidor de `next-intl` al iniciar/ejecutar, y evita la reescritura interna a `/es` (404) al no existir una estructura de directorios basada en `[locale]` en el proyecto.
+Para la **Sesión 10**, se ha reactivado el middleware (`src/middleware.ts`) que había sido desactivado previamente. Su ausencia causaba que `next-intl` no inyectara el locale y por ende el frontend respondiera con error 404 en la página raíz.
 
 ## Archivos en los que se ha trabajado
 - `src/components/contaec-bi.tsx`
@@ -44,7 +46,7 @@ Para la **Sesión 9**, se ha agregado la propiedad `locale` en el retorno de `ge
 - `src/components/contaec-warehouses.tsx`
 - `src/components/email-template-editor.tsx`
 - `src/i18n/request.ts`
-- `src/middleware.ts.disabled`
+- `src/middleware.ts`
 - `.agents/AGENTS.md`
 - `handoff.md`
 
@@ -86,6 +88,8 @@ Para la **Sesión 9**, se ha agregado la propiedad `locale` en el retorno de `ge
 - **Sesión 9 (Cambios Realizados)**:
     - **`src/i18n/request.ts`**: Se añadió la propiedad `locale` al objeto de retorno de `getRequestConfig`.
     - **`src/middleware.ts`**: Se desactivó renombrándolo a `middleware.ts.disabled` para prevenir las reescrituras internas de URL de Next.js que causaban el error 404, ya que el proyecto utiliza traducciones cliente y no tiene la carpeta `[locale]` en la estructura.
+- **Sesión 10 (Cambios Realizados)**:
+    - **`src/middleware.ts`**: Se reactivó (renombrado de `middleware.ts.disabled` a `middleware.ts`) ya que su desactivación impedía a Next.js y next-intl resolver las páginas y generaba el error 404.
 
 ## Intentos y Fallos
 - Se intentó usar `bun run typecheck`, pero el comando `bun` no se encontró.
@@ -96,7 +100,7 @@ Para la **Sesión 9**, se ha agregado la propiedad `locale` en el retorno de `ge
 - (Sesión 7) Se identificó que la remoción previa de `CardHeader` y `CardTitle` de `@/components/ui/card` en `contaec-projects.tsx` provocó los errores `react/jsx-no-undef` durante el build en el servidor. Al reincorporar estas importaciones y limpiar los warnings de variables declaradas y no usadas, se resolvieron todas las incidencias reportadas en la compilación.
 - (Sesión 8) Se determinó que el error del servidor que involucra a `closePOSSessionAPI` proviene de modificaciones no trackeadas (uncommitted) realizadas directamente en el servidor. Debido a que las firmas locales de `closePOSSession` en `api.ts` y su llamada en `contaec-pos.tsx` ya están alineadas usando 2 argumentos, el despliegue del código local limpio resolverá el error.
 - (Sesión 9) Se investigó el error "A 'Locale' is expected to be returned from 'getRequestConfig', but none was returned" que arrojaba el frontend. Se verificó en la documentación oficial de `next-intl` 3.22+ que el objeto devuelto por `getRequestConfig` ahora requiere obligatoriamente incluir la propiedad `locale` resuelta y validada. Además, se identificó que la reescritura de la URL a `/es` por parte de `next-intl/middleware` (debido a `localePrefix: 'as-needed'`) causaba que Next.js retornara un 404 al no existir un directorio dinámico `[locale]` en el App Router. Se corrigió cambiando el ruteo a `localePrefix: 'never'`.
-
+- (Sesión 10) Se diagnosticó el error 404 persistente y se comprobó que el uso de `next-intl` requiere obligatoriamente del middleware para funcionar. Si no se negocia el idioma mediante middleware, `getLocale()` falla y Next.js no puede renderizar la app.
 ## Plan de Próximos Pasos
 1.  **Despliegue y Validación de i18n**: Subir `src/i18n/request.ts` (junto con los archivos modificados previamente) al servidor de producción `10.0.1.20` vía SCP.
 2.  **Recompilar y Reiniciar**: Ejecutar `bun run build` y reiniciar el servicio del frontend (`contaec-frontend.service`) mediante `systemctl restart contaec-frontend`, verificando con `curl http://localhost:3000` que la página cargue correctamente sin arrojar 404.
@@ -130,7 +134,7 @@ Para la **Sesión 9**, se ha agregado la propiedad `locale` en el retorno de `ge
 
 ---
 
-*Última actualización: 2026-07-10*
-*Estado: ✅ Error de Locale en getRequestConfig resuelto. Compilado y reiniciado exitosamente en producción.*
+*Última actualización: 2026-07-15*
+*Estado: ✅ Reactivación de middleware para corregir error 404. Cambios commiteados.*
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthreply.com> & Antigravity (Gemini 3.5 Flash)
 🤖 Generated with [Claude Code](https://claude.com/claude-code) y Asistente Antigravity
